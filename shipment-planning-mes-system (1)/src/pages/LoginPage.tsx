@@ -2,40 +2,39 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { authAPI, handleApiError } from '../services';
 import type { AuthUser } from '../types';
 
-const USERS: (AuthUser & { password: string })[] = [
-  { id: 'u1', name: 'Admin Kullanıcı', role: 'ADMIN', email: 'admin@mes.local', password: 'admin123' },
-  { id: 'u2', name: 'Ahmet Planlayıcı', role: 'PLANNER', email: 'planner@mes.local', password: 'plan123' },
-  { id: 'u3', name: 'Depo Operatörü', role: 'OPERATOR', email: 'operator@mes.local', password: 'op123' },
+const DEMO_USERS: (AuthUser & { password: string })[] = [
+  { id: 'u1', username: 'admin', fullName: 'Admin Kullanıcı', role: 'admin', email: 'admin@pleksan.com', password: 'Admin123!' },
+  { id: 'u2', username: 'planner01', fullName: 'Ahmet Planlayıcı', role: 'planner', email: 'planner01@pleksan.com', password: 'Planner123!' },
+  { id: 'u3', username: 'warehouse01', fullName: 'Depo Operatörü', role: 'warehouse', email: 'warehouse01@pleksan.com', password: 'Warehouse123!' },
 ];
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { login, initializeData } = useAppStore();
-  const [email, setEmail] = useState('admin@mes.local');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('Admin123!');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    setTimeout(() => {
-      const found = USERS.find((u) => u.email === email && u.password === password);
-      if (!found) {
-        setError('E-posta veya şifre hatalı.');
-        setLoading(false);
-        return;
-      }
-      const { password: _pw, ...user } = found;
-      login(user);
+    try {
+      const response = await authAPI.login({ username, password });
+      login(response.user);
       initializeData();
       navigate('/dashboard');
-    }, 800);
+    } catch (err) {
+      setError(handleApiError(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,12 +60,12 @@ export function LoginPage() {
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">E-posta</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Kullanıcı Adı</label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="kullanici@mes.local"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="kullaniciadi"
                 className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:bg-white/15 transition-all text-sm"
                 required
               />
@@ -111,10 +110,10 @@ export function LoginPage() {
           <div className="mt-6 pt-5 border-t border-white/10">
             <p className="text-slate-500 text-xs text-center mb-3">Demo Hesaplar</p>
             <div className="grid grid-cols-3 gap-2">
-              {USERS.map((u) => (
+              {DEMO_USERS.map((u) => (
                 <button
                   key={u.id}
-                  onClick={() => { setEmail(u.email); setPassword(u.password); }}
+                  onClick={() => { setUsername(u.username); setPassword(u.password); }}
                   className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center transition-colors"
                 >
                   <ShieldCheck size={14} className="mx-auto mb-1 text-blue-400" />

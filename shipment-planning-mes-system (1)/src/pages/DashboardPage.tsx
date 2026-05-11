@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Package, Truck, Users, Clock, AlertTriangle, TrendingUp,
   CheckCircle2, ArrowRight, BarChart3, Activity, Calendar, MapPin
@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { useAppStore } from '../store/useAppStore';
 import { statusLabel, statusColor, statusDotColor, formatDate, countryTypeLabel } from '../utils/helpers';
+import { shipmentPlansAPI, handleApiError } from '../services';
 import { Link } from 'react-router-dom';
 
 const STATUS_COLORS = {
@@ -21,7 +22,26 @@ const STATUS_COLORS = {
 
 export function DashboardPage() {
   const { shipments, tasks, personnel, getDashboardStats } = useAppStore();
-  const stats = getDashboardStats();
+  const [dashboardData, setDashboardData] = useState(getDashboardStats());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const data = await shipmentPlansAPI.getDashboard();
+        setDashboardData(data);
+      } catch (err) {
+        setError(handleApiError(err));
+        setDashboardData(getDashboardStats());
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, []);
+
+  const stats = dashboardData;
 
   const statusDistribution = useMemo(() => {
     const counts: Record<string, number> = {};

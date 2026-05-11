@@ -21,7 +21,7 @@ export type PackageType = 'BOX' | 'PALLET' | 'PACKAGE';
 
 export type PersonnelRole = 'PICKER' | 'PACKER' | 'LOADER';
 
-export type UserRole = 'ADMIN' | 'PLANNER' | 'OPERATOR';
+export type UserRole = 'admin' | 'planner' | 'warehouse' | 'viewer';
 
 // ─── ERP INTEGRATION ─────────────────────────────────────────────────────────
 
@@ -184,9 +184,13 @@ export interface DashboardStats {
 
 export interface AuthUser {
   id: string;
-  name: string;
-  role: UserRole;
+  username: string;
   email: string;
+  fullName: string;
+  role: UserRole;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Notification {
