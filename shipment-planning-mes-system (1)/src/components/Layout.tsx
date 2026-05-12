@@ -16,6 +16,10 @@ const navItems = [
   { path: '/loading-3d', label: '3D Yükleme', icon: Boxes },
 ];
 
+const adminNavItems = [
+  { path: '/admin', label: 'Yönetici Paneli', icon: Shield },
+];
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -145,6 +149,37 @@ export function Layout({ children }: LayoutProps) {
               </Link>
             );
           })}
+
+          {/* Admin Navigation */}
+          {currentUser?.role === 'admin' && (
+            <>
+              <div className="pt-4 pb-2">
+                <div className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Yönetim
+                </div>
+              </div>
+              {adminNavItems.map((item) => {
+                const Icon = item.icon;
+                const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${
+                      active
+                        ? 'bg-red-600 text-white shadow-lg shadow-red-900/30'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    <Icon size={17} />
+                    <span className="flex-1">{item.label}</span>
+                    {active && <ChevronRight size={14} className="opacity-60" />}
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         {/* User */}

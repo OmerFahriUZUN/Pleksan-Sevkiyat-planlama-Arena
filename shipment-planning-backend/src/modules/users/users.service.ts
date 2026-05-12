@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User } from './user.entity';
 import { CreateUserDto } from './dto/create-users.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -79,5 +80,26 @@ export class UsersService {
     await this.findById(id);
     await this.userRepository.update(id, { isActive: false });
     return { message: 'Kullanıcı pasife alındı.' };
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<Omit<User, 'password'>> {
+    const user = await this.findById(id);
+
+    const updateData: Partial<User> = {};
+
+    if (updateUserDto.role) {
+      updateData.role = updateUserDto.role;
+    }
+
+    if (updateUserDto.password) {
+      updateData.password = await bcrypt.hash(updateUserDto.password, 12);
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await this.userRepository.update(id, updateData);
+    }
+
+    // Güncellenmiş kullanıcıyı döndür
+    return this.findById(id);
   }
 }

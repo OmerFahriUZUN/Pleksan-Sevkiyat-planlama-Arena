@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Package, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { authAPI, handleApiError } from '../services';
@@ -29,7 +29,12 @@ export function LoginPage() {
       const response = await authAPI.login({ username, password });
       login(response.user);
       initializeData();
-      navigate('/dashboard');
+      // Admin kullanıcıları admin paneline yönlendir
+      if (response.user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(handleApiError(err));
     } finally {
@@ -123,6 +128,19 @@ export function LoginPage() {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Register Link */}
+        <div className="mt-6 text-center">
+          <p className="text-slate-400">
+            Hesabınız yok mu?{' '}
+            <Link
+              to="/register"
+              className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+            >
+              Kayıt olun
+            </Link>
+          </p>
         </div>
 
         {/* Version */}

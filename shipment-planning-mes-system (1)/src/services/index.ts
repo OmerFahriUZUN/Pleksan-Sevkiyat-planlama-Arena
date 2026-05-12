@@ -5,6 +5,9 @@ export { apiClient, handleApiError } from './apiClient';
 export { authAPI } from './authAPI';
 export type { LoginRequest, LoginResponse, ProfileResponse } from './authAPI';
 
+export { usersAPI } from './usersAPI';
+export type { UpdateUserRequest, UserResponse } from './usersAPI';
+
 export { shipmentPlansAPI } from './shipmentPlansAPI';
 export type {
   CreateShipmentPlanRequest,

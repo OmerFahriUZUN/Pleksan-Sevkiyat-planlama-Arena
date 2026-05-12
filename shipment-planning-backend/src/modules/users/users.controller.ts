@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Body,
   Param,
@@ -16,6 +17,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateUserDto } from './dto/create-users.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -43,6 +45,13 @@ export class UsersController {
   @ApiOperation({ summary: 'Kullanıcı detayı' })
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.findById(id);
+  }
+
+  @Put(':id')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Kullanıcı güncelle' })
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUserDto) {
+    return this.usersService.update(id, dto);
   }
 
   @Delete(':id')

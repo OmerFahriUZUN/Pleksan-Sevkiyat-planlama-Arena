@@ -6,6 +6,14 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+  fullName: string;
+  role?: string;
+}
+
 export interface LoginResponse {
   access_token: string;
   user: AuthUser;
@@ -16,6 +24,15 @@ export interface ProfileResponse extends AuthUser {}
 export const authAPI = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     const response = await apiClient.post<LoginResponse>('/auth/login', data);
+    if (response.data.access_token) {
+      localStorage.setItem('authToken', response.data.access_token);
+      localStorage.setItem('authUser', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
+
+  register: async (data: RegisterRequest): Promise<LoginResponse> => {
+    const response = await apiClient.post<LoginResponse>('/auth/register', data);
     if (response.data.access_token) {
       localStorage.setItem('authToken', response.data.access_token);
       localStorage.setItem('authUser', JSON.stringify(response.data.user));

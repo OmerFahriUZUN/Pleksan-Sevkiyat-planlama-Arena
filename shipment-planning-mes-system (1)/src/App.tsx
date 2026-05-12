@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAppStore } from './store/useAppStore';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { AdminPage } from './pages/AdminPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { PlanningPage } from './pages/PlanningPage';
 import { ExecutionPage } from './pages/ExecutionPage';
@@ -12,6 +14,13 @@ import { Loading3DPage } from './pages/Loading3DPage';
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const currentUser = useAppStore((s) => s.currentUser);
   if (!currentUser) return <Navigate to="/login" replace />;
+  return <Layout>{children}</Layout>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const currentUser = useAppStore((s) => s.currentUser);
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (currentUser.role !== 'admin') return <Navigate to="/dashboard" replace />;
   return <Layout>{children}</Layout>;
 }
 
@@ -39,6 +48,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
         <Route
           path="/dashboard"
@@ -46,6 +56,14 @@ export default function App() {
             <ProtectedRoute>
               <DashboardPage />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminPage />
+            </AdminRoute>
           }
         />
         <Route
