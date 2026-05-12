@@ -35,6 +35,24 @@ export interface OrderItemSnapshot {
   weightKg?: number;
 }
 
+export type ShipmentTaskType = 'PICKING' | 'PACKING' | 'LOADING';
+export type ShipmentTaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+
+export interface ShipmentTaskSnapshot {
+  id: string;
+  type: ShipmentTaskType;
+  assignedPersonId?: string;
+  assignedPersonIds?: string[];
+  assignedPersonName?: string;
+  assignedPersonNames?: string[];
+  durationMinutes: number;
+  status: ShipmentTaskStatus;
+  plannedStart?: string;
+  plannedEnd?: string;
+  actualStart?: string;
+  actualEnd?: string;
+}
+
 @Entity('shipment_plans')
 export class ShipmentPlan {
   @PrimaryGeneratedColumn('uuid')
@@ -109,6 +127,9 @@ export class ShipmentPlan {
   // MSSQL'de jsonb yok — simple-json kullanıyoruz (nvarchar(max) olarak saklanır)
   @Column({ type: 'simple-json', nullable: true })
   orderItems: OrderItemSnapshot[];
+
+  @Column({ type: 'simple-json', nullable: true })
+  workflowTasks: ShipmentTaskSnapshot[];
 
   @Column({ type: 'nvarchar', length: 1000, nullable: true })
   notes: string;

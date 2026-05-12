@@ -92,6 +92,7 @@ export interface Task {
   shipment_no: string;
   type: TaskType;
   assigned_person_id: string | null;
+  assigned_person_ids?: string[] | null;
   planned_start: string;
   planned_end: string;
   actual_start: string | null;

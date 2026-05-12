@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search, Filter, Plus, ChevronDown, ChevronRight,
   CalendarDays, Users, Package, MapPin, Clock,
@@ -26,7 +26,8 @@ export function PlanningPage() {
   const {
     shipments, shipmentLines, tasks, personnel, packages,
     transitionShipmentStatus, autoAssignTasks, generatePackages,
-    manualAssignTask, startTask, completeTask, rescheduleTask
+    loadTasksForShipment, manualAssignTask, updateTaskDuration,
+    startTask, completeTask, rescheduleTask
   } = useAppStore();
 
   const [search, setSearch] = useState('');
@@ -34,6 +35,12 @@ export function PlanningPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [assignModal, setAssignModal] = useState<{ taskId: string; type: string } | null>(null);
   const [sortBy, setSortBy] = useState<'due_date' | 'status' | 'shipment_no'>('due_date');
+
+  useEffect(() => {
+    if (expandedId) {
+      loadTasksForShipment(expandedId);
+    }
+  }, [expandedId, loadTasksForShipment]);
 
   const filtered = useMemo(() => {
     return shipments
@@ -205,7 +212,12 @@ export function PlanningPage() {
                     <div className="flex items-center gap-2 overflow-x-auto pb-1">
                       {['PICKING', 'PACKING', 'LOADING'].map((type, idx) => {
                         const task = shipmentTasks.find((t) => t.type === type);
-                        const assignedPerson = personnel.find((p) => p.id === task?.assigned_person_id);
+                        const assignedPersonIds = task?.assigned_person_ids?.length
+                          ? task.assigned_person_ids
+                          : task?.assigned_person_id
+                          ? [task.assigned_person_id]
+                          : [];
+                        const assignedPeople = personnel.filter((p) => assignedPersonIds.includes(p.id));
                         return (
                           <React.Fragment key={type}>
                             <div className="flex-shrink-0 w-44 bg-slate-50 rounded-xl border border-slate-200 p-3">
@@ -222,8 +234,43 @@ export function PlanningPage() {
                               </div>
                               {task ? (
                                 <>
-                                  <p className="text-xs text-slate-600 truncate">{assignedPerson?.name ?? '—'}</p>
-                                  <p className="text-xs text-slate-400 mt-0.5">{task.duration_minutes} dk</p>
+                                  <div className="mb-2 flex flex-wrap gap-1">
+                                    {assignedPeople.length > 0 ? (
+                                      assignedPeople.map((person) => (
+                                        <span key={person.id} className="text-[11px] bg-slate-100 text-slate-700 px-2 py-1 rounded-full">
+                                          {person.name}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      <span className="text-xs text-slate-400">—</span>
+                                    )}
+                                  </div>
+                                  <div className="mt-1 text-xs text-slate-400">
+                                    <label className="block mb-1">Süre (dk)</label>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => updateTaskDuration(task.id, Math.max(1, task.duration_minutes - 1))}
+                                        className="h-7 w-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center"
+                                      >
+                                        -
+                                      </button>
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        value={task.duration_minutes}
+                                        onChange={(e) => updateTaskDuration(task.id, Math.max(1, Number(e.target.value) || 1))}
+                                        className="w-16 text-center rounded-lg border border-slate-200 bg-white text-slate-800 text-xs py-1"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => updateTaskDuration(task.id, task.duration_minutes + 1)}
+                                        className="h-7 w-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  </div>
                                   <div className="flex gap-1 mt-2">
                                     {task.status === 'PENDING' && (
                                       <button
@@ -356,8 +403,18 @@ export function PlanningPage() {
           taskId={assignModal.taskId}
           taskType={assignModal.type}
           personnel={personnel}
-          onAssign={(personId) => {
-            manualAssignTask(assignModal.taskId, personId);
+          currentAssignments={
+            (() => {
+              const task = tasks.find((t) => t.id === assignModal.taskId);
+              return task?.assigned_person_ids?.length
+                ? task.assigned_person_ids
+                : task?.assigned_person_id
+                ? [task.assigned_person_id]
+                : [];
+            })()
+          }
+          onSave={(personIds) => {
+            manualAssignTask(assignModal.taskId, personIds);
             setAssignModal(null);
           }}
           onClose={() => setAssignModal(null)}
@@ -480,17 +537,30 @@ function GanttHeader() {
 
 // ─── ASSIGN MODAL ─────────────────────────────────────────────────────────────
 function AssignModal({
-  taskId, taskType, personnel, onAssign, onClose
+  taskId,
+  taskType,
+  personnel,
+  currentAssignments,
+  onSave,
+  onClose,
 }: {
   taskId: string;
   taskType: string;
   personnel: any[];
-  onAssign: (personId: string) => void;
+  currentAssignments: string[];
+  onSave: (personIds: string[]) => void;
   onClose: () => void;
 }) {
+  const [selectedIds, setSelectedIds] = React.useState<string[]>(currentAssignments);
   const roleMap: Record<string, string> = { PICKING: 'PICKER', PACKING: 'PACKER', LOADING: 'LOADER' };
   const eligible = personnel.filter((p) => p.role === roleMap[taskType]);
   const others = personnel.filter((p) => p.role !== roleMap[taskType]);
+
+  const togglePerson = (personId: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(personId) ? prev.filter((id) => id !== personId) : [...prev, personId],
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -499,6 +569,24 @@ function AssignModal({
         <h3 className="font-bold text-slate-800 mb-1">Personel Ata</h3>
         <p className="text-slate-500 text-sm mb-4">{taskTypeLabel(taskType as any)} görevi için</p>
 
+        <div className="mb-4">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Seçili Personel</p>
+          <div className="flex flex-wrap gap-2">
+            {selectedIds.length > 0 ? (
+              selectedIds.map((id) => {
+                const person = personnel.find((p) => p.id === id);
+                return person ? (
+                  <span key={id} className="text-[11px] bg-slate-100 text-slate-700 px-2 py-1 rounded-full">
+                    {person.name}
+                  </span>
+                ) : null;
+              })
+            ) : (
+              <span className="text-xs text-slate-400">Hiç personel seçilmedi</span>
+            )}
+          </div>
+        </div>
+
         {eligible.length > 0 && (
           <>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Uygun Personel</p>
@@ -506,16 +594,24 @@ function AssignModal({
               {eligible.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => onAssign(p.id)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 border border-slate-200 hover:border-blue-300 transition-all text-left"
+                  type="button"
+                  onClick={() => togglePerson(p.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left border ${
+                    selectedIds.includes(p.id)
+                      ? 'border-blue-300 bg-blue-50'
+                      : 'border-slate-200 hover:bg-slate-50'
+                  }`}
                 >
                   <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs flex-shrink-0">
                     {p.name[0]}
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-medium text-slate-800">{p.name}</p>
                     <p className="text-xs text-slate-500">{roleLabel(p.role)} · {p.shift_start}–{p.shift_end}</p>
                   </div>
+                  {selectedIds.includes(p.id) && (
+                    <span className="text-xs text-blue-600 font-semibold">Seçili</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -529,25 +625,46 @@ function AssignModal({
               {others.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => onAssign(p.id)}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 border border-slate-200 transition-all text-left opacity-60"
+                  type="button"
+                  onClick={() => togglePerson(p.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left border ${
+                    selectedIds.includes(p.id)
+                      ? 'border-blue-300 bg-blue-50'
+                      : 'border-slate-200 hover:bg-slate-50 opacity-80'
+                  }`}
                 >
                   <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs flex-shrink-0">
                     {p.name[0]}
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs font-medium text-slate-700">{p.name}</p>
                     <p className="text-xs text-slate-400">{roleLabel(p.role)}</p>
                   </div>
+                  {selectedIds.includes(p.id) && (
+                    <span className="text-xs text-blue-600 font-semibold">Seçili</span>
+                  )}
                 </button>
               ))}
             </div>
           </>
         )}
 
-        <button onClick={onClose} className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm hover:bg-slate-50 transition-colors">
-          İptal
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onSave(selectedIds)}
+            className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors"
+          >
+            Kaydet
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm hover:bg-slate-50 transition-colors"
+          >
+            İptal
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ShipmentStatus, ShipmentPriority } from '../shipment-plan.entity';
 import { OrderItemDto } from './create-shipment-plan.dto';
+import { ShipmentTaskDto } from './shipment-plan-task.dto';
 
 export class UpdateShipmentPlanDto {
   @ApiPropertyOptional()
@@ -100,6 +101,13 @@ export class UpdateShipmentPlanDto {
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
   orderItems?: OrderItemDto[];
+
+  @ApiPropertyOptional({ type: [ShipmentTaskDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ShipmentTaskDto)
+  workflowTasks?: ShipmentTaskDto[];
 
   @ApiPropertyOptional()
   @IsOptional()

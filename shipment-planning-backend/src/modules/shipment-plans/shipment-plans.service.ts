@@ -5,9 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ShipmentPlan, ShipmentStatus } from './shipment-plan.entity';
+import { ShipmentPlan, ShipmentStatus, ShipmentTaskSnapshot } from './shipment-plan.entity';
 import { CreateShipmentPlanDto } from './dto/create-shipment-plan.dto';
 import { UpdateShipmentPlanDto } from './dto/update-shipment-plan.dto';
+import { UpdateShipmentTaskDto } from './dto/shipment-plan-task.dto';
 
 @Injectable()
 export class ShipmentPlansService {
@@ -21,6 +22,35 @@ export class ShipmentPlansService {
     const count = await this.shipmentPlanRepo.count();
     const seq = String(count + 1).padStart(4, '0');
     return `SHP-${year}-${seq}`;
+  }
+
+  private createDefaultTasks(planCode: string): ShipmentTaskSnapshot[] {
+    return [
+      {
+        id: `TSK-${planCode}-PICK`,
+        type: 'PICKING',
+        assignedPersonIds: [],
+        assignedPersonNames: [],
+        durationMinutes: 20,
+        status: 'PENDING',
+      },
+      {
+        id: `TSK-${planCode}-PACK`,
+        type: 'PACKING',
+        assignedPersonIds: [],
+        assignedPersonNames: [],
+        durationMinutes: 25,
+        status: 'PENDING',
+      },
+      {
+        id: `TSK-${planCode}-LOAD`,
+        type: 'LOADING',
+        assignedPersonIds: [],
+        assignedPersonNames: [],
+        durationMinutes: 15,
+        status: 'PENDING',
+      },
+    ];
   }
 
   async create(dto: CreateShipmentPlanDto, createdById: string): Promise<ShipmentPlan> {
@@ -40,6 +70,7 @@ export class ShipmentPlansService {
       totalPalletCount: dto.totalPalletCount,
       totalBoxCount: dto.totalBoxCount,
       orderItems: dto.orderItems || [],
+      workflowTasks: dto.workflowTasks ?? this.createDefaultTasks(planCode),
       notes: dto.notes,
       createdBy: { id: createdById } as any,
       assignedTo: dto.assignedToId ? ({ id: dto.assignedToId } as any) : null,
@@ -83,6 +114,19 @@ export class ShipmentPlansService {
       relations: ['vehicle', 'createdBy', 'assignedTo'],
     });
     if (!plan) throw new NotFoundException(`Sevkiyat planı bulunamadı: ${id}`);
+    if (!plan.workflowTasks || plan.workflowTasks.length === 0) {
+      plan.workflowTasks = this.createDefaultTasks(plan.planCode);
+    } else {
+      plan.workflowTasks = plan.workflowTasks.map((task) => ({
+        ...task,
+        assignedPersonIds:
+          task.assignedPersonIds ??
+          (task.assignedPersonId ? [task.assignedPersonId] : []),
+        assignedPersonNames:
+          task.assignedPersonNames ??
+          (task.assignedPersonName ? [task.assignedPersonName] : []),
+      }));
+    }
     return plan;
   }
 
@@ -111,6 +155,7 @@ export class ShipmentPlansService {
     if (dto.totalPalletCount !== undefined) updateData.totalPalletCount = dto.totalPalletCount;
     if (dto.totalBoxCount !== undefined) updateData.totalBoxCount = dto.totalBoxCount;
     if (dto.orderItems !== undefined) updateData.orderItems = dto.orderItems;
+    if (dto.workflowTasks !== undefined) updateData.workflowTasks = dto.workflowTasks;
     if (dto.notes !== undefined) updateData.notes = dto.notes;
     if (dto.plannedShipDate !== undefined) updateData.plannedShipDate = new Date(dto.plannedShipDate);
     if (dto.plannedDeliveryDate !== undefined) updateData.plannedDeliveryDate = new Date(dto.plannedDeliveryDate);
@@ -127,6 +172,30 @@ export class ShipmentPlansService {
     await this.findOne(id);
     await this.shipmentPlanRepo.update(id, { status });
     return this.findOne(id);
+  }
+
+  async updateTask(shipmentId: string, taskId: string, dto: UpdateShipmentTaskDto): Promise<ShipmentTaskSnapshot> {
+    const plan = await this.findOne(shipmentId);
+    const tasks = plan.workflowTasks ?? this.createDefaultTasks(plan.planCode);
+    const taskIndex = tasks.findIndex((task) => task.id === taskId);
+    if (taskIndex === -1) {
+      throw new NotFoundException(`Görev bulunamadı: ${taskId}`);
+    }
+
+    const updatedTask = {
+      ...tasks[taskIndex],
+      ...(dto.assigned_person_ids !== undefined
+        ? { assignedPersonIds: dto.assigned_person_ids }
+        : dto.assigned_person_id !== undefined
+        ? { assignedPersonIds: dto.assigned_person_id ? [dto.assigned_person_id] : [] }
+        : {}),
+      ...(dto.duration_minutes !== undefined ? { durationMinutes: dto.duration_minutes } : {}),
+    };
+
+    tasks[taskIndex] = updatedTask;
+    plan.workflowTasks = tasks;
+    await this.shipmentPlanRepo.save(plan);
+    return updatedTask;
   }
 
   async remove(id: string): Promise<{ message: string }> {

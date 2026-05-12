@@ -17,6 +17,9 @@ export type {
   DashboardResponse,
 } from './shipmentPlansAPI';
 
+export { tasksAPI } from './tasksAPI';
+export type { UpdateTaskRequest } from './tasksAPI';
+
 export { ordersAPI } from './ordersAPI';
 export type { Order, PendingShipmentResponse } from './ordersAPI';
 

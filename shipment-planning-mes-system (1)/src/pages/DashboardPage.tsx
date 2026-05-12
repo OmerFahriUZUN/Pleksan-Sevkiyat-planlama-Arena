@@ -57,7 +57,14 @@ export function DashboardPage() {
 
   const personnelStats = useMemo(() => {
     return personnel.map((p) => {
-      const personTasks = tasks.filter((t) => t.assigned_person_id === p.id);
+      const personTasks = tasks.filter((t) => {
+        const assigned = t.assigned_person_ids?.length
+          ? t.assigned_person_ids
+          : t.assigned_person_id
+          ? [t.assigned_person_id]
+          : [];
+        return assigned.includes(p.id);
+      });
       const completed = personTasks.filter((t) => t.status === 'COMPLETED').length;
       const total = personTasks.length;
       return {

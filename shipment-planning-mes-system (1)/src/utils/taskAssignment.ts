@@ -16,11 +16,14 @@ function getPersonWorkloadMinutes(
   allTasks: Task[]
 ): number {
   return allTasks
-    .filter(
-      (t) =>
-        t.assigned_person_id === person_id &&
-        t.status !== 'COMPLETED'
-    )
+    .filter((t) => {
+      const assignees = t.assigned_person_ids?.length
+        ? t.assigned_person_ids
+        : t.assigned_person_id
+        ? [t.assigned_person_id]
+        : [];
+      return assignees.includes(person_id) && t.status !== 'COMPLETED';
+    })
     .reduce((sum, t) => {
       const dur =
         (new Date(t.planned_end).getTime() -
@@ -59,14 +62,20 @@ function hasConflict(
   allTasks: Task[],
   excludeTaskId?: string
 ): boolean {
-  return allTasks.some(
-    (t) =>
+  return allTasks.some((t) => {
+    const assignees = t.assigned_person_ids?.length
+      ? t.assigned_person_ids
+      : t.assigned_person_id
+      ? [t.assigned_person_id]
+      : [];
+    return (
       t.id !== excludeTaskId &&
-      t.assigned_person_id === person_id &&
+      assignees.includes(person_id) &&
       t.status !== 'COMPLETED' &&
       new Date(t.planned_start) < end &&
       new Date(t.planned_end) > start
-  );
+    );
+  });
 }
 
 function selectBestPerson(
@@ -144,6 +153,7 @@ export function assignTasksToPersonnel(
       shipment_no: shipment.shipment_no,
       type: 'PICKING',
       assigned_person_id: pickPersonId,
+      assigned_person_ids: pickPersonId ? [pickPersonId] : [],
       planned_start: pickStart.toISOString(),
       planned_end: pickEnd.toISOString(),
       actual_start: null,
@@ -157,6 +167,7 @@ export function assignTasksToPersonnel(
       shipment_no: shipment.shipment_no,
       type: 'PACKING',
       assigned_person_id: packPersonId,
+      assigned_person_ids: packPersonId ? [packPersonId] : [],
       planned_start: packStart.toISOString(),
       planned_end: packEnd.toISOString(),
       actual_start: null,
@@ -170,6 +181,7 @@ export function assignTasksToPersonnel(
       shipment_no: shipment.shipment_no,
       type: 'LOADING',
       assigned_person_id: loadPersonId,
+      assigned_person_ids: loadPersonId ? [loadPersonId] : [],
       planned_start: loadStart.toISOString(),
       planned_end: loadEnd.toISOString(),
       actual_start: null,

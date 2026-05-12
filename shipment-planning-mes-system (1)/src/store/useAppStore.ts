@@ -21,6 +21,7 @@ import { generateMockData } from '../utils/mockData';
 import { runPackagingAlgorithm } from '../utils/packagingAlgorithm';
 import { assignTasksToPersonnel } from '../utils/taskAssignment';
 import { planVehicleLoading } from '../utils/vehiclePlanning';
+import { tasksAPI } from '../services/tasksAPI';
 
 // ─── FSM ──────────────────────────────────────────────────────────────────────
 const STATUS_ORDER: ShipmentStatus[] = [
@@ -66,7 +67,9 @@ interface AppState {
   updateShipmentDeliverySequence: (shipment_id: string, seq: number) => void;
 
   autoAssignTasks: (shipment_id: string) => void;
-  manualAssignTask: (task_id: string, person_id: string) => void;
+  loadTasksForShipment: (shipment_id: string) => Promise<void>;
+  manualAssignTask: (task_id: string, person_ids: string[]) => Promise<void>;
+  updateTaskDuration: (task_id: string, duration_minutes: number) => Promise<void>;
   startTask: (task_id: string) => void;
   completeTask: (task_id: string) => void;
   rescheduleTask: (task_id: string, new_start: string, new_end: string) => boolean;
@@ -195,18 +198,71 @@ export const useAppStore = create<AppState>()(
         addNotification({ type: 'success', message: `Sevkiyat #${shipment.shipment_no} için görevler otomatik atandı.` });
       },
 
-      manualAssignTask: (task_id, person_id) => {
+      manualAssignTask: async (task_id, person_ids) => {
         const { tasks, personnel, addNotification } = get();
         const task = tasks.find((t) => t.id === task_id);
-        const person = personnel.find((p) => p.id === person_id);
-        if (!task || !person) return;
+        if (!task) return;
         const roleMap: Record<string, string> = { PICKING: 'PICKER', PACKING: 'PACKER', LOADING: 'LOADER' };
-        if (person.role !== roleMap[task.type]) {
-          addNotification({ type: 'warning', message: `${person.name} bu görev tipi için uygun role sahip değil.` });
+        const invalid = person_ids.some((person_id) => {
+          const person = personnel.find((p) => p.id === person_id);
+          return person ? person.role !== roleMap[task.type] : true;
+        });
+        if (invalid) {
+          addNotification({ type: 'warning', message: 'Seçilen personellerden bazıları bu görev tipi için uygun değil.' });
         }
+
         set((s) => ({
-          tasks: s.tasks.map((t) => t.id === task_id ? { ...t, assigned_person_id: person_id } : t),
+          tasks: s.tasks.map((t) =>
+            t.id === task_id
+              ? {
+                  ...t,
+                  assigned_person_ids: person_ids,
+                  assigned_person_id: person_ids.length > 0 ? person_ids[0] : null,
+                }
+              : t,
+          ),
         }));
+
+        try {
+          await tasksAPI.updateTask(task.shipment_id, task_id, { assigned_person_ids: person_ids });
+          addNotification({ type: 'success', message: `${task.shipment_no} görevi için operatörler kaydedildi.` });
+        } catch (error) {
+          addNotification({ type: 'warning', message: 'Operatör ataması backend ile senkronize edilemedi. Yerelde kaydedildi.' });
+        }
+      },
+
+      updateTaskDuration: async (task_id, duration_minutes) => {
+        const { tasks, addNotification } = get();
+        const task = tasks.find((t) => t.id === task_id);
+        if (!task) return;
+        set((s) => ({
+          tasks: s.tasks.map((t) =>
+            t.id === task_id ? { ...t, duration_minutes } : t
+          ),
+        }));
+
+        try {
+          await tasksAPI.updateTask(task.shipment_id, task_id, { duration_minutes });
+          addNotification({ type: 'success', message: `${task.shipment_no} görevi için süre güncellendi.` });
+        } catch (error) {
+          addNotification({ type: 'warning', message: 'Süre backend ile kaydedilemedi. Yerelde güncellendi.' });
+        }
+      },
+
+      loadTasksForShipment: async (shipment_id) => {
+        const { tasks, addNotification } = get();
+        try {
+          const serverTasks = await tasksAPI.getByShipment(shipment_id);
+          set((s) => ({
+            tasks: [
+              ...s.tasks.filter((t) => t.shipment_id !== shipment_id),
+              ...serverTasks,
+            ],
+          }));
+          addNotification({ type: 'success', message: 'Sevkiyat görevleri backend ile senkronize edildi.' });
+        } catch (error) {
+          addNotification({ type: 'warning', message: 'Sevkiyat görevleri backend yüklenemedi. Yerelde devam ediliyor.' });
+        }
       },
 
       startTask: (task_id) => {
@@ -230,16 +286,27 @@ export const useAppStore = create<AppState>()(
       rescheduleTask: (task_id, new_start, new_end) => {
         const { tasks, addNotification } = get();
         const task = tasks.find((t) => t.id === task_id);
-        if (!task || !task.assigned_person_id) return false;
+        const taskPersonIds = task?.assigned_person_ids?.length
+          ? task.assigned_person_ids
+          : task?.assigned_person_id
+          ? [task.assigned_person_id]
+          : [];
+        if (!task || taskPersonIds.length === 0) return false;
 
-        const conflict = tasks.find(
-          (t) =>
+        const conflict = tasks.find((t) => {
+          const assigneeIds = t.assigned_person_ids?.length
+            ? t.assigned_person_ids
+            : t.assigned_person_id
+            ? [t.assigned_person_id]
+            : [];
+          return (
             t.id !== task_id &&
-            t.assigned_person_id === task.assigned_person_id &&
+            assigneeIds.some((id) => taskPersonIds.includes(id)) &&
             t.status !== 'COMPLETED' &&
             new Date(t.planned_start) < new Date(new_end) &&
             new Date(t.planned_end) > new Date(new_start)
-        );
+          );
+        });
 
         if (conflict) {
           addNotification({ type: 'error', message: `Çakışma tespit edildi: Görev #${conflict.id} ile örtüşüyor.` });
