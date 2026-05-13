@@ -143,27 +143,20 @@ async function seed() {
   }
 
   const operatorUsers = [
-    {
-      username: 'Ali Yılmaz',
-      email: 'aliyilmaz@pleksan.com',
-      password: SAMPLE_OPERATOR_PASSWORD,
-      fullName: 'Ali Yılmaz',
-      role: UserRole.OPERATOR,
-    },
-    {
-      username: 'Damla Korkmaz',
-      email: 'damla.korkmaz@pleksan.com',
-      password: SAMPLE_OPERATOR_PASSWORD,
-      fullName: 'Damla Korkmaz',
-      role: UserRole.OPERATOR,
-    },
-    {
-      username: 'Murat Şahin',
-      email: 'murat.sahin@pleksan.com',
-      password: SAMPLE_OPERATOR_PASSWORD,
-      fullName: 'Murat Şahin',
-      role: UserRole.OPERATOR,
-    },
+    { username: 'ali.boran', email: 'ali.boran@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Ali Boran Bolat', role: UserRole.OPERATOR },
+    { username: 'berkay.kircay', email: 'berkay.kircay@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Berkay Kırçay', role: UserRole.OPERATOR },
+    { username: 'burak.kircay', email: 'burak.kircay@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Burak Kırçay', role: UserRole.OPERATOR },
+    { username: 'efe.deniz.bolat', email: 'efe.deniz.bolat@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Efe Deniz Bolat', role: UserRole.OPERATOR },
+    { username: 'halil.bolat', email: 'halil.bolat@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Halil Bolat', role: UserRole.OPERATOR },
+    { username: 'mehmet.albayrak', email: 'mehmet.albayrak@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Mehmet Albayrak', role: UserRole.OPERATOR },
+    { username: 'mehmet.kuzu', email: 'mehmet.kuzu@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Mehmet Kuzu', role: UserRole.OPERATOR },
+    { username: 'mert.ilkbas', email: 'mert.ilkbas@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Mert İlkbaş', role: UserRole.OPERATOR },
+    { username: 'mustafa.colak', email: 'mustafa.colak@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Mustafa Çolak', role: UserRole.OPERATOR },
+    { username: 'samiye.hundi', email: 'samiye.hundi@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Samiye Hundi', role: UserRole.OPERATOR },
+    { username: 'sefa.demirkol', email: 'sefa.demirkol@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Sefa Demirkol', role: UserRole.OPERATOR },
+    { username: 'suat.korucuoglu', email: 'suat.korucuoglu@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Suat Korucuoğlu', role: UserRole.OPERATOR },
+    { username: 'yunus.emre.bolat', email: 'yunus.emre.bolat@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Yunus Emre Bolat', role: UserRole.OPERATOR },
+    { username: 'zerrin.duman', email: 'zerrin.duman@pleksan.com', password: SAMPLE_OPERATOR_PASSWORD, fullName: 'Zerrin Duman', role: UserRole.OPERATOR },
   ];
 
   for (const userData of operatorUsers) {
@@ -188,24 +181,20 @@ async function seed() {
   }
 
   const samplePersonnel = [
-    {
-      ad_soyad: 'Ali Yılmaz',
-      role: PersonnelRole.PICKER,
-      vardiya_baslangic: '08:00',
-      vardiya_bitis: '17:00',
-    },
-    {
-      ad_soyad: 'Damla Korkmaz',
-      role: PersonnelRole.LOADER,
-      vardiya_baslangic: '08:00',
-      vardiya_bitis: '17:00',
-    },
-    {
-      ad_soyad: 'Murat Şahin',
-      role: PersonnelRole.PACKER,
-      vardiya_baslangic: '08:00',
-      vardiya_bitis: '17:00',
-    },
+    { ad_soyad: 'Ali Boran Bolat', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Berkay Kırçay', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Burak Kırçay', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Efe Deniz Bolat', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Halil Bolat', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Mehmet Albayrak', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Mehmet Kuzu', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Mert İlkbaş', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Mustafa Çolak', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Samiye Hundi', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Sefa Demirkol', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Suat Korucuoğlu', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Yunus Emre Bolat', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
+    { ad_soyad: 'Zerrin Duman', role: PersonnelRole.MULTI, vardiya_baslangic: '08:00', vardiya_bitis: '17:00' },
   ];
 
   for (const person of samplePersonnel) {
@@ -238,6 +227,30 @@ async function seed() {
       ic_yukseklik_mm: 2500,
       max_agirlik_kg: 3500,
       palet_kapasitesi: 10,
+      status: VehicleStatus.AVAILABLE,
+    },
+    {
+      arac_tipi: 'Panel Van',
+      plaka: '34PLS124',
+      sofor_adi: 'Ayşe Yıldız',
+      sofor_telefon: '05552345678',
+      ic_uzunluk_mm: 6000,
+      ic_genislik_mm: 2400,
+      ic_yukseklik_mm: 2500,
+      max_agirlik_kg: 3500,
+      palet_kapasitesi: 10,
+      status: VehicleStatus.AVAILABLE,
+    },
+    {
+      arac_tipi: 'Kamyonet',
+      plaka: '34PLS125',
+      sofor_adi: 'Cem Alp',
+      sofor_telefon: '05553456789',
+      ic_uzunluk_mm: 7000,
+      ic_genislik_mm: 2500,
+      ic_yukseklik_mm: 2600,
+      max_agirlik_kg: 4500,
+      palet_kapasitesi: 12,
       status: VehicleStatus.AVAILABLE,
     },
   ];
@@ -417,9 +430,10 @@ async function seed() {
   }
 
   const personnelList = await personnelRepository.find();
-  const picker = personnelList.find((p) => p.role === PersonnelRole.PICKER);
-  const packer = personnelList.find((p) => p.role === PersonnelRole.PACKER);
-  const loader = personnelList.find((p) => p.role === PersonnelRole.LOADER);
+  const multiOperators = personnelList.filter((p) => p.role === PersonnelRole.MULTI);
+  const picker = multiOperators[0] || personnelList.find((p) => p.role === PersonnelRole.PICKER);
+  const packer = multiOperators[1] || personnelList.find((p) => p.role === PersonnelRole.PACKER) || multiOperators[0];
+  const loader = multiOperators[2] || personnelList.find((p) => p.role === PersonnelRole.LOADER) || multiOperators[0];
 
   const samplePlannedHeader = {
     is_yeri: 'Merkez Depo',
@@ -547,10 +561,351 @@ async function seed() {
     console.log('✓ Planlama örneği sevkiyat güncellendi');
   } else {
     samplePlannedShipment = shipmentRepository.create(
-  samplePlannedData as DeepPartial<ShipmentPlan>
-);
+      samplePlannedData as DeepPartial<ShipmentPlan>
+    );
     await shipmentRepository.save(samplePlannedShipment);
     console.log('✓ Planlama örneği sevkiyat oluşturuldu');
+  }
+
+  const secondVehicle = await vehicleRepository.findOne({ where: { plaka: '34PLS124' } });
+  const thirdVehicle = await vehicleRepository.findOne({ where: { plaka: '34PLS125' } });
+  const multiList = personnelList.filter((p) => p.role === PersonnelRole.MULTI);
+
+  const samplePickedHeader = {
+    is_yeri: 'Merkez Depo',
+    kart_bilgisi: 'YURTICI',
+    sevkiyat_no: 'ERP-PICK-3001',
+    siparis_no: 'SIP-3001',
+    cari_kod: 'C11111',
+    cari_ad: 'Pleksan Müşteri B',
+    nakliye_yeri: 'İstanbul Avrupa',
+    islem_tarihi: new Date().toISOString(),
+    termin_tarihi: new Date(Date.now() + 3 * 24 * 60 * 60000).toISOString(),
+    sevkiyat_tarihi: new Date(Date.now() + 4 * 24 * 60 * 60000).toISOString(),
+    cari_ulke: 'Türkiye',
+    cari_sehir: 'İstanbul',
+    cari_ilce: 'Kağıthane',
+  };
+
+  const samplePickedDetails = [
+    {
+      stok_kodu: 'PCK-101',
+      stok_adi: 'Seçim Ürünü 101',
+      sevk_emir_miktari: 12,
+      sevk_emri_kalan: 12,
+      depo_kodu: 'DEPO-03',
+      sevk_tarihi: new Date().toISOString(),
+      koli_sayisi: 6,
+      palet_sayisi: 1,
+      hacim_m3: 0.54,
+      agirlik: 300,
+      koli_uzunluk_m: 1.2,
+      koli_genislik_m: 0.8,
+      koli_yukseklik_m: 0.6,
+    },
+    {
+      stok_kodu: 'PCK-102',
+      stok_adi: 'Seçim Ürünü 102',
+      sevk_emir_miktari: 8,
+      sevk_emri_kalan: 8,
+      depo_kodu: 'DEPO-03',
+      sevk_tarihi: new Date().toISOString(),
+      koli_sayisi: 4,
+      palet_sayisi: 0,
+      hacim_m3: 0.32,
+      agirlik: 160,
+      koli_uzunluk_m: 1.0,
+      koli_genislik_m: 0.7,
+      koli_yukseklik_m: 0.5,
+    },
+  ];
+
+  const samplePickedHash = hashData({ header: samplePickedHeader, details: samplePickedDetails });
+  let samplePickedShipment = await shipmentRepository.findOne({ where: { sevkiyat_no: samplePickedHeader.sevkiyat_no } });
+  const samplePickedProducts = samplePickedDetails.map(buildProduct);
+  const pickedId = `VA-${Date.now()}-2`;
+
+  const samplePickedAssignments = [
+    {
+      id: pickedId,
+      vehicle_id: secondVehicle?.id || 'vehicle-sample-2',
+      plate: secondVehicle?.plaka || '34PLS124',
+      driver_name: secondVehicle?.sofor_adi || 'Ayşe Yıldız',
+      load_percentage: 60,
+      delivery_sequence: 1,
+    },
+  ];
+
+  const pickedOps: Operation[] = [];
+  if (multiList.length > 0) {
+    pickedOps.push({
+      id: `OP-${samplePickedHeader.sevkiyat_no}-PICK`,
+      type: OperationType.PICKING,
+      personel_ids: [multiList[0].id],
+      personel_names: [multiList[0].ad_soyad],
+      planned_start: new Date(Date.now() - 20 * 60000).toISOString(),
+      planned_end: new Date(Date.now() + 10 * 60000).toISOString(),
+      actual_start: new Date(Date.now() - 20 * 60000).toISOString(),
+      actual_end: null,
+      planned_duration_minutes: 30,
+      actual_duration_minutes: null,
+      status: OperationStatus.IN_PROGRESS,
+    });
+    pickedOps.push({
+      id: `OP-${samplePickedHeader.sevkiyat_no}-PACK`,
+      type: OperationType.PACKING,
+      personel_ids: [multiList[1]?.id || multiList[0].id],
+      personel_names: [multiList[1]?.ad_soyad || multiList[0].ad_soyad],
+      planned_start: new Date(Date.now() + 10 * 60000).toISOString(),
+      planned_end: new Date(Date.now() + 40 * 60000).toISOString(),
+      actual_start: null,
+      actual_end: null,
+      planned_duration_minutes: 30,
+      actual_duration_minutes: null,
+      status: OperationStatus.PENDING,
+    });
+    pickedOps.push({
+      id: `OP-${samplePickedHeader.sevkiyat_no}-LOAD`,
+      type: OperationType.LOADING,
+      personel_ids: [multiList[2]?.id || multiList[0].id],
+      personel_names: [multiList[2]?.ad_soyad || multiList[0].ad_soyad],
+      planned_start: new Date(Date.now() + 40 * 60000).toISOString(),
+      planned_end: new Date(Date.now() + 55 * 60000).toISOString(),
+      actual_start: null,
+      actual_end: null,
+      planned_duration_minutes: 15,
+      actual_duration_minutes: null,
+      status: OperationStatus.PENDING,
+    });
+  }
+
+  const samplePickedData = {
+    sevkiyat_no: samplePickedHeader.sevkiyat_no,
+    siparis_no: samplePickedHeader.siparis_no,
+    kart_bilgisi: samplePickedHeader.kart_bilgisi,
+    cari_kod: samplePickedHeader.cari_kod,
+    cari_ad: samplePickedHeader.cari_ad,
+    nakliye_yeri: samplePickedHeader.nakliye_yeri,
+    cari_ulke: samplePickedHeader.cari_ulke,
+    cari_sehir: samplePickedHeader.cari_sehir,
+    cari_ilce: samplePickedHeader.cari_ilce,
+    termin_tarihi: new Date(samplePickedHeader.termin_tarihi),
+    sevkiyat_tarihi: samplePickedHeader.sevkiyat_tarihi ? new Date(samplePickedHeader.sevkiyat_tarihi) : null,
+    islem_tarihi: samplePickedHeader.islem_tarihi ? new Date(samplePickedHeader.islem_tarihi) : null,
+    teslimat_adresi: `${samplePickedHeader.nakliye_yeri || ''}, ${samplePickedHeader.cari_ilce || ''}/${samplePickedHeader.cari_sehir || ''}`,
+    erp_raw_header: samplePickedHeader,
+    erp_raw_details: samplePickedDetails,
+    erp_data_hash: samplePickedHash,
+    urun_listesi: samplePickedProducts,
+    toplam_koli: samplePickedProducts.reduce((sum, p) => sum + p.koli_sayisi, 0),
+    toplam_palet: samplePickedProducts.reduce((sum, p) => sum + p.palet_sayisi, 0),
+    toplam_agirlik_kg: samplePickedProducts.reduce((sum, p) => sum + p.agirlik, 0),
+    toplam_hacim_m3: samplePickedProducts.reduce((sum, p) => sum + p.hacim_m3, 0),
+    preparation_checks: samplePickedProducts.map((product) => ({
+      stok_kodu: product.stok_kodu,
+      stok_adi: product.stok_adi,
+      is_stock_sufficient: true,
+      is_product_ready: true,
+      is_quality_approved: true,
+      is_warehouse_suitable: true,
+      notes: '',
+    })),
+    status: ShipmentStatus.PICKING,
+    priority: ShipmentPriority.NORMAL,
+    is_partial_shipment: false,
+    partial_shipment_percentage: 0,
+    vehicle_assignments: samplePickedAssignments,
+    loading_sequences: samplePickedProducts.map((product, idx) => {
+      const dims = estimateProductDimensions(product);
+      return {
+        id: `LS-${Date.now()}-${idx}-PICK`,
+        vehicle_assignment_id: pickedId,
+        product_code: product.stok_kodu,
+        product_name: product.stok_adi,
+        pallet_count: product.palet_sayisi,
+        box_count: product.koli_sayisi,
+        sequence_order: idx + 1,
+        is_first_delivery: true,
+        is_last_delivery: false,
+        weight_kg: product.agirlik,
+        volume_m3: product.hacim_m3,
+        length_mm: dims.length_mm,
+        width_mm: dims.width_mm,
+        height_mm: dims.height_mm,
+      };
+    }),
+    operations: pickedOps.length > 0 ? pickedOps : undefined,
+  };
+
+  if (samplePickedShipment) {
+    Object.assign(samplePickedShipment, samplePickedData);
+    await shipmentRepository.save(samplePickedShipment);
+    console.log('✓ Picking örnek sevkiyat güncellendi');
+  } else {
+    samplePickedShipment = shipmentRepository.create(samplePickedData as DeepPartial<ShipmentPlan>);
+    await shipmentRepository.save(samplePickedShipment);
+    console.log('✓ Picking örnek sevkiyat oluşturuldu');
+  }
+
+  const sampleLoadingHeader = {
+    is_yeri: 'Merkez Depo',
+    kart_bilgisi: 'YURTICI',
+    sevkiyat_no: 'ERP-LOAD-4001',
+    siparis_no: 'SIP-4001',
+    cari_kod: 'C22222',
+    cari_ad: 'Pleksan Müşteri C',
+    nakliye_yeri: 'İstanbul Anadolu',
+    islem_tarihi: new Date().toISOString(),
+    termin_tarihi: new Date(Date.now() + 4 * 24 * 60 * 60000).toISOString(),
+    sevkiyat_tarihi: new Date(Date.now() + 5 * 24 * 60 * 60000).toISOString(),
+    cari_ulke: 'Türkiye',
+    cari_sehir: 'İstanbul',
+    cari_ilce: 'Ümraniye',
+  };
+
+  const sampleLoadingDetails = [
+    {
+      stok_kodu: 'LOD-201',
+      stok_adi: 'Yükleme Ürünü 201',
+      sevk_emir_miktari: 7,
+      sevk_emri_kalan: 7,
+      depo_kodu: 'DEPO-04',
+      sevk_tarihi: new Date().toISOString(),
+      koli_sayisi: 3,
+      palet_sayisi: 0,
+      hacim_m3: 0.28,
+      agirlik: 140,
+      koli_uzunluk_m: 0.9,
+      koli_genislik_m: 0.7,
+      koli_yukseklik_m: 0.45,
+    },
+  ];
+
+  const sampleLoadingHash = hashData({ header: sampleLoadingHeader, details: sampleLoadingDetails });
+  let sampleLoadingShipment = await shipmentRepository.findOne({ where: { sevkiyat_no: sampleLoadingHeader.sevkiyat_no } });
+  const sampleLoadingProducts = sampleLoadingDetails.map(buildProduct);
+  const loadingId = `VA-${Date.now()}-3`;
+
+  const sampleLoadingAssignments = [
+    {
+      id: loadingId,
+      vehicle_id: thirdVehicle?.id || 'vehicle-sample-3',
+      plate: thirdVehicle?.plaka || '34PLS125',
+      driver_name: thirdVehicle?.sofor_adi || 'Cem Alp',
+      load_percentage: 70,
+      delivery_sequence: 1,
+    },
+  ];
+
+  const loadingOps: Operation[] = [];
+  if (multiList.length > 0) {
+    loadingOps.push({
+      id: `OP-${sampleLoadingHeader.sevkiyat_no}-PICK`,
+      type: OperationType.PICKING,
+      personel_ids: [multiList[0].id],
+      personel_names: [multiList[0].ad_soyad],
+      planned_start: new Date(Date.now() - 60 * 60000).toISOString(),
+      planned_end: new Date(Date.now() - 30 * 60000).toISOString(),
+      actual_start: new Date(Date.now() - 60 * 60000).toISOString(),
+      actual_end: new Date(Date.now() - 30 * 60000).toISOString(),
+      planned_duration_minutes: 30,
+      actual_duration_minutes: 30,
+      status: OperationStatus.COMPLETED,
+    });
+    loadingOps.push({
+      id: `OP-${sampleLoadingHeader.sevkiyat_no}-PACK`,
+      type: OperationType.PACKING,
+      personel_ids: [multiList[1]?.id || multiList[0].id],
+      personel_names: [multiList[1]?.ad_soyad || multiList[0].ad_soyad],
+      planned_start: new Date(Date.now() - 30 * 60000).toISOString(),
+      planned_end: new Date(Date.now() + 10 * 60000).toISOString(),
+      actual_start: new Date(Date.now() - 30 * 60000).toISOString(),
+      actual_end: null,
+      planned_duration_minutes: 40,
+      actual_duration_minutes: null,
+      status: OperationStatus.IN_PROGRESS,
+    });
+    loadingOps.push({
+      id: `OP-${sampleLoadingHeader.sevkiyat_no}-LOAD`,
+      type: OperationType.LOADING,
+      personel_ids: [multiList[2]?.id || multiList[0].id],
+      personel_names: [multiList[2]?.ad_soyad || multiList[0].ad_soyad],
+      planned_start: new Date(Date.now() + 10 * 60000).toISOString(),
+      planned_end: new Date(Date.now() + 40 * 60000).toISOString(),
+      actual_start: null,
+      actual_end: null,
+      planned_duration_minutes: 30,
+      actual_duration_minutes: null,
+      status: OperationStatus.PENDING,
+    });
+  }
+
+  const sampleLoadingData = {
+    sevkiyat_no: sampleLoadingHeader.sevkiyat_no,
+    siparis_no: sampleLoadingHeader.siparis_no,
+    kart_bilgisi: sampleLoadingHeader.kart_bilgisi,
+    cari_kod: sampleLoadingHeader.cari_kod,
+    cari_ad: sampleLoadingHeader.cari_ad,
+    nakliye_yeri: sampleLoadingHeader.nakliye_yeri,
+    cari_ulke: sampleLoadingHeader.cari_ulke,
+    cari_sehir: sampleLoadingHeader.cari_sehir,
+    cari_ilce: sampleLoadingHeader.cari_ilce,
+    termin_tarihi: new Date(sampleLoadingHeader.termin_tarihi),
+    sevkiyat_tarihi: sampleLoadingHeader.sevkiyat_tarihi ? new Date(sampleLoadingHeader.sevkiyat_tarihi) : null,
+    islem_tarihi: sampleLoadingHeader.islem_tarihi ? new Date(sampleLoadingHeader.islem_tarihi) : null,
+    teslimat_adresi: `${sampleLoadingHeader.nakliye_yeri || ''}, ${sampleLoadingHeader.cari_ilce || ''}/${sampleLoadingHeader.cari_sehir || ''}`,
+    erp_raw_header: sampleLoadingHeader,
+    erp_raw_details: sampleLoadingDetails,
+    erp_data_hash: sampleLoadingHash,
+    urun_listesi: sampleLoadingProducts,
+    toplam_koli: sampleLoadingProducts.reduce((sum, p) => sum + p.koli_sayisi, 0),
+    toplam_palet: sampleLoadingProducts.reduce((sum, p) => sum + p.palet_sayisi, 0),
+    toplam_agirlik_kg: sampleLoadingProducts.reduce((sum, p) => sum + p.agirlik, 0),
+    toplam_hacim_m3: sampleLoadingProducts.reduce((sum, p) => sum + p.hacim_m3, 0),
+    preparation_checks: sampleLoadingProducts.map((product) => ({
+      stok_kodu: product.stok_kodu,
+      stok_adi: product.stok_adi,
+      is_stock_sufficient: true,
+      is_product_ready: true,
+      is_quality_approved: true,
+      is_warehouse_suitable: true,
+      notes: '',
+    })),
+    status: ShipmentStatus.LOADING,
+    priority: ShipmentPriority.NORMAL,
+    is_partial_shipment: false,
+    partial_shipment_percentage: 0,
+    vehicle_assignments: sampleLoadingAssignments,
+    loading_sequences: sampleLoadingProducts.map((product, idx) => {
+      const dims = estimateProductDimensions(product);
+      return {
+        id: `LS-${Date.now()}-${idx}-LOAD`,
+        vehicle_assignment_id: loadingId,
+        product_code: product.stok_kodu,
+        product_name: product.stok_adi,
+        pallet_count: product.palet_sayisi,
+        box_count: product.koli_sayisi,
+        sequence_order: idx + 1,
+        is_first_delivery: true,
+        is_last_delivery: false,
+        weight_kg: product.agirlik,
+        volume_m3: product.hacim_m3,
+        length_mm: dims.length_mm,
+        width_mm: dims.width_mm,
+        height_mm: dims.height_mm,
+      };
+    }),
+    operations: loadingOps.length > 0 ? loadingOps : undefined,
+  };
+
+  if (sampleLoadingShipment) {
+    Object.assign(sampleLoadingShipment, sampleLoadingData);
+    await shipmentRepository.save(sampleLoadingShipment);
+    console.log('✓ Loading örnek sevkiyat güncellendi');
+  } else {
+    sampleLoadingShipment = shipmentRepository.create(sampleLoadingData as DeepPartial<ShipmentPlan>);
+    await shipmentRepository.save(sampleLoadingShipment);
+    console.log('✓ Loading örnek sevkiyat oluşturuldu');
   }
 
   console.log('\n✓ Seeding tamamlandı!');
@@ -559,9 +914,20 @@ async function seed() {
   console.log('Planner   | planner01 | Planner123!');
   console.log('Warehouse | warehouse01 | Warehouse123!');
   console.log('Viewer    | viewer01  | Viewer123!');
-  console.log('Operator  | Ali Yılmaz | 123456');
-  console.log('Operator  | Damla Korkmaz | 123456');
-  console.log('Operator  | Murat Şahin | 123456');
+  console.log('Operator  | ali.boran | 123456');
+  console.log('Operator  | berkay.kircay | 123456');
+  console.log('Operator  | burak.kircay | 123456');
+  console.log('Operator  | efe.deniz.bolat | 123456');
+  console.log('Operator  | halil.bolat | 123456');
+  console.log('Operator  | mehmet.albayrak | 123456');
+  console.log('Operator  | mehmet.kuzu | 123456');
+  console.log('Operator  | mert.ilkbas | 123456');
+  console.log('Operator  | mustafa.colak | 123456');
+  console.log('Operator  | samiye.hundi | 123456');
+  console.log('Operator  | sefa.demirkol | 123456');
+  console.log('Operator  | suat.korucuoglu | 123456');
+  console.log('Operator  | yunus.emre.bolat | 123456');
+  console.log('Operator  | zerrin.duman | 123456');
 
   await AppDataSource.destroy();
 }

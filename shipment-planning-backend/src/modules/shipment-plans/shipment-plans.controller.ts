@@ -72,6 +72,14 @@ export class ShipmentPlansController {
     return this.service.getDashboardStats();
   }
 
+  @Get('gantt')
+  @ApiOperation({ summary: 'Gantt için aktif sevkiyatları al' })
+  @ApiQuery({ name: 'dateFrom', required: false })
+  @ApiQuery({ name: 'dateTo', required: false })
+  async getGantt(@Query('dateFrom') dateFrom?: string, @Query('dateTo') dateTo?: string) {
+    return this.service.getGanttPlans({ dateFrom, dateTo });
+  }
+
   @Get('erp-pool')
   @ApiOperation({ summary: 'ERP havuzundaki sevkiyatlar (bekleyen)' })
   async getErpPool() {

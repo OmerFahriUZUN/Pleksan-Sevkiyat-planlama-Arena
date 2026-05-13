@@ -197,6 +197,7 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
+  passwordHint?: string;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;

@@ -1,8 +1,84 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, CalendarDays, Users, Play, CheckCircle2, Settings2, ArrowRight, RefreshCw } from 'lucide-react';
+import { ChevronRight, CalendarDays, Users, Play, CheckCircle2, Settings2, ArrowRight, RefreshCw, ArrowLeft } from 'lucide-react';
 import { shipmentPlansAPI, personnelAPI, handleApiError } from '../services';
 import { statusLabel, statusColor, formatDate, formatDateTime, operationTypeLabel, operationTypeColor, operationStatusLabel, operationStatusColor, personnelRoleLabel } from '../utils/helpers';
 import type { ShipmentPlan, Personnel } from '../types';
+
+function getPeriodRange(date: Date, period: 'daily' | 'weekly' | 'monthly') {
+  const base = new Date(date);
+  base.setHours(0, 0, 0, 0);
+  let from = new Date(base);
+  let to = new Date(base);
+
+  if (period === 'daily') {
+    from.setHours(7, 0, 0, 0);
+    to.setHours(19, 0, 0, 0);
+  } else if (period === 'weekly') {
+    const day = base.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    from.setDate(base.getDate() + mondayOffset);
+    from.setHours(7, 0, 0, 0);
+    to = new Date(from);
+    to.setDate(from.getDate() + 6);
+    to.setHours(19, 0, 0, 0);
+  } else {
+    from.setDate(1);
+    from.setHours(7, 0, 0, 0);
+    to = new Date(from.getFullYear(), from.getMonth() + 1, 0);
+    to.setHours(19, 0, 0, 0);
+  }
+
+  return { from, to };
+}
+
+function getPeriodLabel(date: Date, period: 'daily' | 'weekly' | 'monthly') {
+  const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+  if (period === 'daily') {
+    return date.toLocaleDateString('tr-TR', options);
+  }
+  if (period === 'weekly') {
+    const range = getPeriodRange(date, period);
+    return `${range.from.toLocaleDateString('tr-TR', options)} - ${range.to.toLocaleDateString('tr-TR', options)}`;
+  }
+  return date.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+}
+
+function getTimelineTicks(period: 'daily' | 'weekly' | 'monthly', from: Date, to: Date) {
+  const ticks: string[] = [];
+  if (period === 'daily') {
+    for (let hour = 7; hour <= 19; hour += 1) {
+      ticks.push(`${hour}:00`);
+    }
+  } else if (period === 'weekly') {
+    const current = new Date(from);
+    while (current <= to) {
+      ticks.push(current.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit' }));
+      current.setDate(current.getDate() + 1);
+    }
+  } else {
+    const current = new Date(from);
+    while (current <= to) {
+      ticks.push(current.toLocaleDateString('tr-TR', { day: '2-digit' }));
+      current.setDate(current.getDate() + 1);
+    }
+  }
+  return ticks;
+}
+
+function getBarStyle(start: string, end: string, from: Date, to: Date) {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const total = to.getTime() - from.getTime();
+  const left = Math.max(0, (startDate.getTime() - from.getTime()) / total * 100);
+  const width = Math.min(100 - left, Math.max(1, (endDate.getTime() - startDate.getTime()) / total * 100));
+  return { left: `${left}%`, width: `${width}%` };
+}
+
+function isOperationVisible(op: { planned_start: string; planned_end: string }, from: Date, to: Date) {
+  const start = new Date(op.planned_start);
+  const end = new Date(op.planned_end);
+  return end >= from && start <= to;
+}
 
 export function OperationPlanningPage() {
   const [shipments, setShipments] = useState<ShipmentPlan[]>([]);
@@ -11,23 +87,38 @@ export function OperationPlanningPage() {
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ganttView, setGanttView] = useState<'shipment' | 'personnel'>('shipment');
+  const [viewPeriod, setViewPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [viewPeriod, calendarDate]);
 
   const loadData = async () => {
     setLoading(true);
     try {
+      const range = getPeriodRange(calendarDate, viewPeriod);
       const [sData, pData] = await Promise.all([
-        shipmentPlansAPI.getAll(),
-        personnelAPI.getAll()
+        shipmentPlansAPI.getGantt({ dateFrom: range.from.toISOString(), dateTo: range.to.toISOString() }),
+        personnelAPI.getAll(),
       ]);
-      setShipments(sData.filter((s) => ['ready_for_planning', 'planned', 'picking', 'packing', 'loading'].includes(s.status)));
+      setShipments(sData);
       setPersonnel(pData);
     } catch (err) {
       setError(handleApiError(err));
     } finally {
       setLoading(false);
     }
+  };
+
+  const shiftCalendarDate = (direction: number) => {
+    const next = new Date(calendarDate);
+    if (viewPeriod === 'daily') {
+      next.setDate(calendarDate.getDate() + direction);
+    } else if (viewPeriod === 'weekly') {
+      next.setDate(calendarDate.getDate() + direction * 7);
+    } else {
+      next.setMonth(calendarDate.getMonth() + direction);
+    }
+    setCalendarDate(next);
   };
 
   const createOps = async (id: string, picking: number, packing: number, loading: number) => {
@@ -79,6 +170,7 @@ export function OperationPlanningPage() {
   const pickers = personnel.filter((p) => p.role === 'PICKER' || p.role === 'MULTI');
   const packers = personnel.filter((p) => p.role === 'PACKER' || p.role === 'MULTI');
   const loaders = personnel.filter((p) => p.role === 'LOADER' || p.role === 'MULTI');
+  const currentRange = getPeriodRange(calendarDate, viewPeriod);
 
   return (
     <div className="p-4 lg:p-6 space-y-5">
@@ -95,13 +187,32 @@ export function OperationPlanningPage() {
       {error && <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 text-sm">{error}</div>}
 
       {/* Gantt View Selector */}
-      <div className="flex gap-2">
-        <button onClick={() => setGanttView('shipment')} className={`px-4 py-2 text-xs font-medium rounded-xl border transition-all ${ganttView === 'shipment' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}>
-          <CalendarDays size={14} className="inline mr-1" />Sevkiyat Gantt
-        </button>
-        <button onClick={() => setGanttView('personnel')} className={`px-4 py-2 text-xs font-medium rounded-xl border transition-all ${ganttView === 'personnel' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}>
-          <Users size={14} className="inline mr-1" />Personel Gantt
-        </button>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setGanttView('shipment')} className={`px-4 py-2 text-xs font-medium rounded-xl border transition-all ${ganttView === 'shipment' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}>
+            <CalendarDays size={14} className="inline mr-1" />Sevkiyat Gantt
+          </button>
+          <button onClick={() => setGanttView('personnel')} className={`px-4 py-2 text-xs font-medium rounded-xl border transition-all ${ganttView === 'personnel' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}>
+            <Users size={14} className="inline mr-1" />Personel Gantt
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-2">
+            {['daily', 'weekly', 'monthly'].map((period) => (
+              <button
+                key={period}
+                onClick={() => setViewPeriod(period as 'daily' | 'weekly' | 'monthly')}
+                className={`px-3 py-2 text-xs font-medium rounded-xl border transition-all ${viewPeriod === period ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200'}`}>
+                {period === 'daily' ? 'Günlük' : period === 'weekly' ? 'Haftalık' : 'Aylık'}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-600 text-xs">
+            <button onClick={() => shiftCalendarDate(-1)} className="p-1 rounded-full hover:bg-slate-100"><ArrowLeft size={14} /></button>
+            <span className="font-medium">{getPeriodLabel(calendarDate, viewPeriod)}</span>
+            <button onClick={() => shiftCalendarDate(1)} className="p-1 rounded-full hover:bg-slate-100"><ArrowRight size={14} /></button>
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -116,9 +227,9 @@ export function OperationPlanningPage() {
         <>
           {/* Gantt View */}
           {ganttView === 'shipment' ? (
-            <ShipmentGantt shipments={shipments} />
+            <ShipmentGantt shipments={shipments} period={viewPeriod} from={currentRange.from} to={currentRange.to} />
           ) : (
-            <PersonnelGantt shipments={shipments} personnel={personnel} />
+            <PersonnelGantt shipments={shipments} personnel={personnel} period={viewPeriod} from={currentRange.from} to={currentRange.to} />
           )}
 
           {/* Shipment List with Operations */}
@@ -290,24 +401,21 @@ function NextStatusButton({ shipment, onTransition }: { shipment: ShipmentPlan; 
   );
 }
 
-function ShipmentGantt({ shipments }: { shipments: ShipmentPlan[] }) {
+function ShipmentGantt({ shipments, period, from, to }: { shipments: ShipmentPlan[]; period: 'daily' | 'weekly' | 'monthly'; from: Date; to: Date }) {
   const activeOps = shipments.flatMap((s) =>
     (s.operations || [])
-      .filter((o) => o.planned_start && o.status !== 'COMPLETED')
+      .filter((o) => o.planned_start && o.status !== 'COMPLETED' && isOperationVisible(o, from, to))
       .map((o) => ({ ...o, sevkiyat_no: s.sevkiyat_no }))
   );
 
-  const hours = Array.from({ length: 12 }, (_, i) => i + 7);
-  const today = new Date();
-  const dayStart = new Date(today); dayStart.setHours(7, 0, 0, 0);
-  const dayEnd = new Date(today); dayEnd.setHours(19, 0, 0, 0);
-  const totalMinutes = (dayEnd.getTime() - dayStart.getTime()) / 60000;
+  const ticks = getTimelineTicks(period, from, to);
+  const total = to.getTime() - from.getTime();
 
   const getBarStyle = (start: string, end: string) => {
     const s = new Date(start);
     const e = new Date(end);
-    const left = Math.max(0, (s.getTime() - dayStart.getTime()) / 60000 / totalMinutes * 100);
-    const width = Math.min(100 - left, Math.max(1, (e.getTime() - s.getTime()) / 60000 / totalMinutes * 100));
+    const left = Math.max(0, (s.getTime() - from.getTime()) / total * 100);
+    const width = Math.min(100 - left, Math.max(1, (e.getTime() - s.getTime()) / total * 100));
     return { left: `${left}%`, width: `${width}%` };
   };
 
@@ -322,18 +430,18 @@ function ShipmentGantt({ shipments }: { shipments: ShipmentPlan[] }) {
         <div className="min-w-[700px] px-4 py-2">
           <div className="flex border-b border-slate-100 pb-2">
             <div className="w-32 flex-shrink-0" />
-            <div className="flex-1 flex justify-between">
-              {hours.map((h) => (<span key={h} className="text-slate-400 text-xs">{h}:00</span>))}
+            <div className="flex-1 flex flex-wrap gap-2">
+              {ticks.map((tick) => (<span key={tick} className="text-slate-400 text-xs whitespace-nowrap">{tick}</span>))}
             </div>
           </div>
           <div className="divide-y divide-slate-50">
-            {shipments.filter((s) => (s.operations || []).some((o) => o.status !== 'COMPLETED')).slice(0, 10).map((s) => (
+            {shipments.filter((s) => (s.operations || []).some((o) => o.status !== 'COMPLETED' && isOperationVisible(o, from, to))).slice(0, 10).map((s) => (
               <div key={s.id} className="flex items-center gap-3 py-2">
                 <div className="w-32 flex-shrink-0">
                   <p className="text-xs font-medium text-slate-700 truncate">{s.sevkiyat_no}</p>
                 </div>
                 <div className="flex-1 h-8 relative bg-slate-50 rounded-lg overflow-hidden">
-                  {(s.operations || []).filter((o) => o.planned_start && o.status !== 'COMPLETED').map((op) => {
+                  {(s.operations || []).filter((o) => o.planned_start && o.status !== 'COMPLETED' && isOperationVisible(o, from, to)).map((op) => {
                     const style = getBarStyle(op.planned_start, op.planned_end);
                     return (
                       <div key={op.id} className="absolute top-1 bottom-1 rounded flex items-center px-1.5 text-white text-[10px] font-medium overflow-hidden"
@@ -353,22 +461,21 @@ function ShipmentGantt({ shipments }: { shipments: ShipmentPlan[] }) {
   );
 }
 
-function PersonnelGantt({ shipments, personnel }: { shipments: ShipmentPlan[]; personnel: Personnel[] }) {
+function PersonnelGantt({ shipments, personnel, period, from, to }: { shipments: ShipmentPlan[]; personnel: Personnel[]; period: 'daily' | 'weekly' | 'monthly'; from: Date; to: Date }) {
   const allOps = shipments.flatMap((s) =>
-    (s.operations || []).filter((o) => o.planned_start && o.status !== 'COMPLETED').map((o) => ({ ...o, sevkiyat_no: s.sevkiyat_no }))
+    (s.operations || [])
+      .filter((o) => o.planned_start && o.status !== 'COMPLETED' && isOperationVisible(o, from, to))
+      .map((o) => ({ ...o, sevkiyat_no: s.sevkiyat_no }))
   );
 
-  const hours = Array.from({ length: 12 }, (_, i) => i + 7);
-  const today = new Date();
-  const dayStart = new Date(today); dayStart.setHours(7, 0, 0, 0);
-  const dayEnd = new Date(today); dayEnd.setHours(19, 0, 0, 0);
-  const totalMinutes = (dayEnd.getTime() - dayStart.getTime()) / 60000;
+  const ticks = getTimelineTicks(period, from, to);
+  const total = to.getTime() - from.getTime();
 
   const getBarStyle = (start: string, end: string) => {
     const s = new Date(start);
     const e = new Date(end);
-    const left = Math.max(0, (s.getTime() - dayStart.getTime()) / 60000 / totalMinutes * 100);
-    const width = Math.min(100 - left, Math.max(1, (e.getTime() - s.getTime()) / 60000 / totalMinutes * 100));
+    const left = Math.max(0, (s.getTime() - from.getTime()) / total * 100);
+    const width = Math.min(100 - left, Math.max(1, (e.getTime() - s.getTime()) / total * 100));
     return { left: `${left}%`, width: `${width}%` };
   };
 
@@ -385,8 +492,8 @@ function PersonnelGantt({ shipments, personnel }: { shipments: ShipmentPlan[]; p
         <div className="min-w-[700px] px-4 py-2">
           <div className="flex border-b border-slate-100 pb-2">
             <div className="w-36 flex-shrink-0" />
-            <div className="flex-1 flex justify-between">
-              {hours.map((h) => (<span key={h} className="text-slate-400 text-xs">{h}:00</span>))}
+            <div className="flex-1 flex flex-wrap gap-2">
+              {ticks.map((tick) => (<span key={tick} className="text-slate-400 text-xs whitespace-nowrap">{tick}</span>))}
             </div>
           </div>
           <div className="divide-y divide-slate-50">

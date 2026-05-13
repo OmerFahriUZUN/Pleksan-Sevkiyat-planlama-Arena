@@ -23,6 +23,11 @@ export const shipmentPlansAPI = {
     return response.data;
   },
 
+  getGantt: async (params?: { dateFrom?: string; dateTo?: string }): Promise<ShipmentPlan[]> => {
+    const response = await apiClient.get<ShipmentPlan[]>('/shipment-plans/gantt', { params });
+    return response.data;
+  },
+
   getErpPool: async (): Promise<ShipmentPlan[]> => {
     const response = await apiClient.get<ShipmentPlan[]>('/shipment-plans/erp-pool');
     return response.data;

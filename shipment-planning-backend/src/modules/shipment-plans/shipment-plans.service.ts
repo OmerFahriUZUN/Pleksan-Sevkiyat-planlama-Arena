@@ -567,6 +567,19 @@ export class ShipmentPlansService {
     return qb.orderBy('sp.termin_tarihi', 'ASC').addOrderBy('sp.createdAt', 'DESC').getMany();
   }
 
+  async getGanttPlans(filters?: { dateFrom?: string; dateTo?: string }): Promise<ShipmentPlan[]> {
+    const activeStatuses = [
+      ShipmentStatus.READY_FOR_PLANNING,
+      ShipmentStatus.PLANNED,
+      ShipmentStatus.PICKING,
+      ShipmentStatus.PACKING,
+      ShipmentStatus.LOADING,
+    ];
+
+    const plans = await this.findAll(filters);
+    return plans.filter((plan) => activeStatuses.includes(plan.status));
+  }
+
   async findOne(id: string): Promise<ShipmentPlan> {
     const plan = await this.repo.findOne({ where: { id } });
     if (!plan) throw new NotFoundException(`Sevkiyat bulunamadı: ${id}`);

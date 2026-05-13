@@ -10,6 +10,29 @@ import { User } from './user.entity';
 import { CreateUserDto } from './dto/create-users.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
+type UserWithoutPassword = Omit<User, 'password'> & { passwordHint?: string };
+
+const PASSWORD_HINTS: Record<string, string> = {
+  admin: 'Admin123!',
+  planner01: 'Planner123!',
+  warehouse01: 'Warehouse123!',
+  viewer01: 'Viewer123!',
+  'ali.boran': '123456',
+  'berkay.kircay': '123456',
+  'burak.kircay': '123456',
+  'efe.deniz.bolat': '123456',
+  'halil.bolat': '123456',
+  'mehmet.albayrak': '123456',
+  'mehmet.kuzu': '123456',
+  'mert.ilkbas': '123456',
+  'mustafa.colak': '123456',
+  'samiye.hundi': '123456',
+  'sefa.demirkol': '123456',
+  'suat.korucuoglu': '123456',
+  'yunus.emre.bolat': '123456',
+  'zerrin.duman': '123456',
+};
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -51,25 +74,29 @@ export class UsersService {
     return result as Omit<User, 'password'>;
   }
 
-  async findAll(): Promise<Omit<User, 'password'>[]> {
+  private attachPasswordHint(user: User): UserWithoutPassword {
+    const { password: _pw, ...rest } = user;
+    return {
+      ...rest,
+      passwordHint: PASSWORD_HINTS[user.username],
+    };
+  }
+
+  async findAll(): Promise<UserWithoutPassword[]> {
     const users = await this.userRepository.find({
       where: { isActive: true },
       order: { createdAt: 'DESC' },
     });
 
-    return users.map((u: User) => {
-      const { password: _pw, ...rest } = u;
-      return rest as Omit<User, 'password'>;
-    });
+    return users.map((u: User) => this.attachPasswordHint(u));
   }
 
-  async findById(id: string): Promise<Omit<User, 'password'>> {
+  async findById(id: string): Promise<UserWithoutPassword> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
       throw new NotFoundException('Kullanıcı bulunamadı.');
     }
-    const { password: _pw, ...result } = user;
-    return result as Omit<User, 'password'>;
+    return this.attachPasswordHint(user);
   }
 
   async findByUsername(username: string): Promise<User | null> {
