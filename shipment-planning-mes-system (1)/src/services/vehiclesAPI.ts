@@ -1,55 +1,34 @@
 import { apiClient } from './apiClient';
-import type { Vehicle, VehicleAssignment } from '../types';
-
-export interface CreateVehicleRequest {
-  plate: string;
-  length_mm: number;
-  width_mm: number;
-  height_mm: number;
-  max_weight: number;
-  driver_name: string;
-  status?: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE';
-}
-
-export interface UpdateVehicleStatusRequest {
-  status: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE';
-}
-
-export interface VehicleResponse extends Vehicle {
-  status?: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE';
-  assignments?: VehicleAssignment[];
-}
-
-export interface AvailableVehicleResponse extends VehicleResponse {}
+import type { Vehicle } from '../types';
 
 export const vehiclesAPI = {
-  getAll: async (): Promise<VehicleResponse[]> => {
-    const response = await apiClient.get<VehicleResponse[]>('/vehicles');
+  getAll: async (): Promise<Vehicle[]> => {
+    const response = await apiClient.get<Vehicle[]>('/vehicles');
     return response.data;
   },
 
-  getAvailable: async (): Promise<AvailableVehicleResponse[]> => {
-    const response = await apiClient.get<AvailableVehicleResponse[]>('/vehicles/available');
+  getAvailable: async (): Promise<Vehicle[]> => {
+    const response = await apiClient.get<Vehicle[]>('/vehicles/available');
     return response.data;
   },
 
-  create: async (data: CreateVehicleRequest): Promise<VehicleResponse> => {
-    const response = await apiClient.post<VehicleResponse>('/vehicles', data);
+  getById: async (id: string): Promise<Vehicle> => {
+    const response = await apiClient.get<Vehicle>(`/vehicles/${id}`);
     return response.data;
   },
 
-  updateStatus: async (id: string, data: UpdateVehicleStatusRequest): Promise<VehicleResponse> => {
-    const response = await apiClient.patch<VehicleResponse>(`/vehicles/${id}/status`, data);
+  create: async (data: any): Promise<Vehicle> => {
+    const response = await apiClient.post<Vehicle>('/vehicles', data);
     return response.data;
   },
 
-  getById: async (id: string): Promise<VehicleResponse> => {
-    const response = await apiClient.get<VehicleResponse>(`/vehicles/${id}`);
+  updateStatus: async (id: string, status: string): Promise<Vehicle> => {
+    const response = await apiClient.patch<Vehicle>(`/vehicles/${id}/status`, { status });
     return response.data;
   },
 
-  update: async (id: string, data: Partial<CreateVehicleRequest>): Promise<VehicleResponse> => {
-    const response = await apiClient.patch<VehicleResponse>(`/vehicles/${id}`, data);
+  update: async (id: string, data: any): Promise<Vehicle> => {
+    const response = await apiClient.patch<Vehicle>(`/vehicles/${id}`, data);
     return response.data;
   },
 

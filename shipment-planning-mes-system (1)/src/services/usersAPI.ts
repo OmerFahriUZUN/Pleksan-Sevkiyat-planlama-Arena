@@ -18,7 +18,7 @@ export const usersAPI = {
   },
 
   updateUser: async (id: string, data: UpdateUserRequest): Promise<UserResponse> => {
-    const response = await apiClient.put<UserResponse>(`/users/${id}`, data);
+    const response = await apiClient.patch<UserResponse>(`/users/${id}`, data);
     return response.data;
   },
 

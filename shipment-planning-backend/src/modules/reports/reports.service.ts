@@ -13,10 +13,7 @@ export class ReportsService {
   async getDailyShipmentReport(date: string) {
     const plans = await this.shipmentPlanRepo
       .createQueryBuilder('sp')
-      .leftJoinAndSelect('sp.vehicle', 'vehicle')
-      .leftJoinAndSelect('sp.assignedTo', 'assignedTo')
-      // MSSQL: DATE() yok → CONVERT(DATE, column) kullanıyoruz
-      .where('CONVERT(DATE, sp.plannedShipDate) = :date', { date })
+      .where('CONVERT(DATE, sp.sevkiyat_tarihi) = :date', { date })
       .orderBy('sp.priority', 'DESC')
       .getMany();
 
@@ -24,11 +21,11 @@ export class ReportsService {
       date,
       totalPlans: plans.length,
       totalWeightKg: plans.reduce(
-        (s: number, p: ShipmentPlan) => s + Number(p.totalWeightKg || 0),
+        (s: number, p: ShipmentPlan) => s + Number(p.toplam_agirlik_kg || 0),
         0,
       ),
       totalPallets: plans.reduce(
-        (s: number, p: ShipmentPlan) => s + (p.totalPalletCount || 0),
+        (s: number, p: ShipmentPlan) => s + (p.toplam_palet || 0),
         0,
       ),
       byStatus: {} as Record<string, number>,
@@ -44,35 +41,28 @@ export class ReportsService {
   }
 
   async getMonthlyReport(year: number, month: number) {
-    // MSSQL: EXTRACT() yok → YEAR(), MONTH() kullanıyoruz
     return this.shipmentPlanRepo
       .createQueryBuilder('sp')
-      .select('CONVERT(DATE, sp.plannedShipDate)', 'date')
+      .select('CONVERT(DATE, sp.sevkiyat_tarihi)', 'date')
       .addSelect('COUNT(*)', 'totalPlans')
-      .addSelect('SUM(sp.totalWeightKg)', 'totalWeightKg')
-      .addSelect('SUM(sp.totalPalletCount)', 'totalPallets')
-      .where('YEAR(sp.plannedShipDate) = :year', { year })
-      .andWhere('MONTH(sp.plannedShipDate) = :month', { month })
-      .groupBy('CONVERT(DATE, sp.plannedShipDate)')
-      .orderBy('CONVERT(DATE, sp.plannedShipDate)', 'ASC')
+      .addSelect('SUM(sp.toplam_agirlik_kg)', 'totalWeightKg')
+      .addSelect('SUM(sp.toplam_palet)', 'totalPallets')
+      .where('YEAR(sp.sevkiyat_tarihi) = :year', { year })
+      .andWhere('MONTH(sp.sevkiyat_tarihi) = :month', { month })
+      .groupBy('CONVERT(DATE, sp.sevkiyat_tarihi)')
+      .orderBy('CONVERT(DATE, sp.sevkiyat_tarihi)', 'ASC')
       .getRawMany();
   }
 
   async getVehicleUtilizationReport(dateFrom: string, dateTo: string) {
     return this.shipmentPlanRepo
       .createQueryBuilder('sp')
-      .leftJoin('sp.vehicle', 'v')
-      .select('v.plateNumber', 'plateNumber')
-      .addSelect('v.driverName', 'driverName')
+      .select('va.plate', 'plate')
       .addSelect('COUNT(sp.id)', 'tripCount')
-      .addSelect('SUM(sp.totalWeightKg)', 'totalWeightKg')
-      .addSelect('SUM(sp.totalPalletCount)', 'totalPallets')
-      .where('sp.plannedShipDate BETWEEN :dateFrom AND :dateTo', {
-        dateFrom,
-        dateTo,
-      })
-      .andWhere('sp.vehicle IS NOT NULL')
-      .groupBy('v.plateNumber, v.driverName')
+      .addSelect('SUM(sp.toplam_agirlik_kg)', 'totalWeightKg')
+      .addSelect('SUM(sp.toplam_palet)', 'totalPallets')
+      .where('sp.sevkiyat_tarihi BETWEEN :dateFrom AND :dateTo', { dateFrom, dateTo })
+      .groupBy('va.plate')
       .orderBy('COUNT(sp.id)', 'DESC')
       .getRawMany();
   }
@@ -87,19 +77,18 @@ export class ReportsService {
       .groupBy('sp.status')
       .getRawMany();
 
-    // MSSQL: CURRENT_DATE yok → CONVERT(DATE, GETDATE()) kullanıyoruz
     const todayPlanned = await this.shipmentPlanRepo
       .createQueryBuilder('sp')
-      .where('CONVERT(DATE, sp.plannedShipDate) = CONVERT(DATE, GETDATE())')
-      .andWhere("sp.status NOT IN ('delivered', 'cancelled')")
+      .where('CONVERT(DATE, sp.sevkiyat_tarihi) = CONVERT(DATE, GETDATE())')
+      .andWhere("sp.status NOT IN ('shipped', 'cancelled')")
       .getCount();
 
-    const urgentPending = await this.shipmentPlanRepo
+    const criticalPending = await this.shipmentPlanRepo
       .createQueryBuilder('sp')
-      .where("sp.priority = 'urgent'")
-      .andWhere("sp.status NOT IN ('delivered', 'cancelled')")
+      .where("sp.priority = 'critical'")
+      .andWhere("sp.status NOT IN ('shipped', 'cancelled')")
       .getCount();
 
-    return { total, byStatus, todayPlanned, urgentPending };
+    return { total, byStatus, todayPlanned, criticalPending };
   }
 }

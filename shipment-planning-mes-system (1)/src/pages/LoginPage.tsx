@@ -9,6 +9,7 @@ const DEMO_USERS: (AuthUser & { password: string })[] = [
   { id: 'u1', username: 'admin', fullName: 'Admin Kullanıcı', role: 'admin', email: 'admin@pleksan.com', password: 'Admin123!' },
   { id: 'u2', username: 'planner01', fullName: 'Ahmet Planlayıcı', role: 'planner', email: 'planner01@pleksan.com', password: 'Planner123!' },
   { id: 'u3', username: 'warehouse01', fullName: 'Depo Operatörü', role: 'warehouse', email: 'warehouse01@pleksan.com', password: 'Warehouse123!' },
+  { id: 'u4', username: 'Ali Yılmaz', fullName: 'Ali Yılmaz', role: 'operator', email: 'aliyilmaz@pleksan.com', password: '123456' },
 ];
 
 export function LoginPage() {
@@ -26,10 +27,10 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await authAPI.login({ username, password });
+      const response = await authAPI.login(username, password);
+      localStorage.setItem('authToken', response.access_token);
       login(response.user);
       initializeData();
-      // Admin kullanıcıları admin paneline yönlendir
       if (response.user.role === 'admin') {
         navigate('/admin');
       } else {

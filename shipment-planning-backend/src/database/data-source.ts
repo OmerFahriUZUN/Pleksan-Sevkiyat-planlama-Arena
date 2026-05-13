@@ -3,6 +3,7 @@ import * as dotenv from 'dotenv';
 import { User } from '../modules/users/user.entity';
 import { ShipmentPlan } from '../modules/shipment-plans/shipment-plan.entity';
 import { Vehicle } from '../modules/vehicles/vehicle.entity';
+import { Personnel } from '../modules/personnel/personnel.entity';
 
 dotenv.config();
 
@@ -13,7 +14,7 @@ export const AppDataSource = new DataSource({
   username: process.env.MES_DB_USER,
   password: process.env.MES_DB_PASSWORD,
   database: process.env.MES_DB_NAME,
-  entities: [User, ShipmentPlan, Vehicle],
+  entities: [User, ShipmentPlan, Vehicle, Personnel],
   migrations: ['src/database/migrations/*.ts'],
   synchronize: false,
   logging: true,

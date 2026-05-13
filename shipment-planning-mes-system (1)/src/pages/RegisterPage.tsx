@@ -130,6 +130,7 @@ export function RegisterPage() {
               >
                 <option value="viewer">Görüntüleyici</option>
                 <option value="warehouse">Depo Operatörü</option>
+                <option value="operator">Operatör</option>
                 <option value="planner">Planlayıcı</option>
                 <option value="admin">Yönetici</option>
               </select>

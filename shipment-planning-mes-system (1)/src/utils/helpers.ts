@@ -1,147 +1,154 @@
-import { format, formatDistanceToNow, parseISO, isValid } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import type { ShipmentStatus, TaskType, TaskStatus, PackageType } from '../types';
+import type { ShipmentStatus, OperationType, OperationStatus, PersonnelRole, ShipmentPriority } from '../types';
 
-export function formatDate(dateStr: string | null | undefined, fmt = 'dd.MM.yyyy HH:mm'): string {
-  if (!dateStr) return '—';
-  try {
-    const d = parseISO(dateStr);
-    if (!isValid(d)) return '—';
-    return format(d, fmt, { locale: tr });
-  } catch {
-    return '—';
-  }
-}
-
-export function formatDateShort(dateStr: string | null | undefined): string {
-  return formatDate(dateStr, 'dd.MM.yyyy');
-}
-
-export function formatTimeAgo(dateStr: string | null | undefined): string {
-  if (!dateStr) return '—';
-  try {
-    return formatDistanceToNow(parseISO(dateStr), { addSuffix: true, locale: tr });
-  } catch {
-    return '—';
-  }
-}
-
-export function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${Math.round(minutes)} dk`;
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
-  return m > 0 ? `${h}s ${m}dk` : `${h}s`;
-}
-
-export function statusLabel(status: ShipmentStatus): string {
-  const map: Record<ShipmentStatus, string> = {
-    PLANNED: 'Planlandı',
-    PICKING: 'Toplama',
-    PACKING: 'Paketleme',
-    LOADING: 'Yükleme',
-    SHIPPED: 'Sevk Edildi',
+export const statusLabel = (status: ShipmentStatus | string): string => {
+  const labels: Record<string, string> = {
+    'erp_imported': 'ERP\'den Geldi',
+    'waiting_stock': 'Stok Bekliyor',
+    'waiting_quality': 'Kalite Onayı',
+    'blocked': 'Engelli',
+    'ready_for_planning': 'Planlamaya Hazır',
+    'planned': 'Planlandı',
+    'picking': 'Picking',
+    'packing': 'Packing',
+    'loading': 'Yükleme',
+    'partial_shipment': 'Kısmi Sevkiyat',
+    'shipped': 'Sevk Edildi',
+    'cancelled': 'İptal',
+    'revision_required': 'Revizyon Gerekli',
   };
-  return map[status] ?? status;
-}
+  return labels[status] || status;
+};
 
-export function statusColor(status: ShipmentStatus): string {
-  const map: Record<ShipmentStatus, string> = {
-    PLANNED: 'bg-slate-100 text-slate-700 border-slate-200',
-    PICKING: 'bg-blue-100 text-blue-700 border-blue-200',
-    PACKING: 'bg-amber-100 text-amber-700 border-amber-200',
-    LOADING: 'bg-orange-100 text-orange-700 border-orange-200',
-    SHIPPED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+export const statusColor = (status: ShipmentStatus | string): string => {
+  const colors: Record<string, string> = {
+    'erp_imported': 'bg-slate-100 text-slate-700 border-slate-300',
+    'waiting_stock': 'bg-amber-50 text-amber-700 border-amber-300',
+    'waiting_quality': 'bg-orange-50 text-orange-700 border-orange-300',
+    'blocked': 'bg-red-50 text-red-700 border-red-300',
+    'ready_for_planning': 'bg-emerald-50 text-emerald-700 border-emerald-300',
+    'planned': 'bg-blue-50 text-blue-700 border-blue-300',
+    'picking': 'bg-indigo-50 text-indigo-700 border-indigo-300',
+    'packing': 'bg-purple-50 text-purple-700 border-purple-300',
+    'loading': 'bg-amber-50 text-amber-700 border-amber-300',
+    'partial_shipment': 'bg-cyan-50 text-cyan-700 border-cyan-300',
+    'shipped': 'bg-emerald-50 text-emerald-700 border-emerald-300',
+    'cancelled': 'bg-slate-100 text-slate-500 border-slate-300',
+    'revision_required': 'bg-red-50 text-red-700 border-red-300',
   };
-  return map[status] ?? 'bg-gray-100 text-gray-700';
-}
+  return colors[status] || 'bg-slate-100 text-slate-600 border-slate-300';
+};
 
-export function statusDotColor(status: ShipmentStatus): string {
-  const map: Record<ShipmentStatus, string> = {
-    PLANNED: 'bg-slate-400',
-    PICKING: 'bg-blue-500',
-    PACKING: 'bg-amber-500',
-    LOADING: 'bg-orange-500',
-    SHIPPED: 'bg-emerald-500',
+export const statusDotColor = (status: ShipmentStatus | string): string => {
+  const colors: Record<string, string> = {
+    'erp_imported': 'bg-slate-400',
+    'waiting_stock': 'bg-amber-400',
+    'waiting_quality': 'bg-orange-400',
+    'blocked': 'bg-red-500',
+    'ready_for_planning': 'bg-emerald-500',
+    'planned': 'bg-blue-500',
+    'picking': 'bg-indigo-500',
+    'packing': 'bg-purple-500',
+    'loading': 'bg-amber-500',
+    'partial_shipment': 'bg-cyan-500',
+    'shipped': 'bg-emerald-500',
+    'cancelled': 'bg-slate-400',
+    'revision_required': 'bg-red-500',
   };
-  return map[status] ?? 'bg-gray-400';
-}
+  return colors[status] || 'bg-slate-400';
+};
 
-export function taskTypeLabel(type: TaskType): string {
-  const map: Record<TaskType, string> = {
-    PICKING: 'Toplama',
-    PACKING: 'Paketleme',
-    LOADING: 'Yükleme',
+export const priorityLabel = (p: ShipmentPriority | string): string => {
+  const labels: Record<string, string> = { low: 'Düşük', normal: 'Normal', high: 'Yüksek', critical: 'Kritik' };
+  return labels[p] || p;
+};
+
+export const priorityColor = (p: ShipmentPriority | string): string => {
+  const colors: Record<string, string> = {
+    low: 'bg-slate-100 text-slate-600',
+    normal: 'bg-blue-50 text-blue-700',
+    high: 'bg-amber-50 text-amber-700',
+    critical: 'bg-red-50 text-red-700',
   };
-  return map[type] ?? type;
-}
+  return colors[p] || 'bg-slate-100 text-slate-600';
+};
 
-export function taskTypeColor(type: TaskType): string {
-  const map: Record<TaskType, string> = {
-    PICKING: '#3b82f6',
-    PACKING: '#f59e0b',
-    LOADING: '#f97316',
-  };
-  return map[type] ?? '#6b7280';
-}
+export const operationTypeLabel = (type: OperationType | string): string => {
+  const labels: Record<string, string> = { PICKING: 'Picking', PACKING: 'Packing', LOADING: 'Yükleme' };
+  return labels[type] || type;
+};
 
-export function taskStatusLabel(status: TaskStatus): string {
-  const map: Record<TaskStatus, string> = {
-    PENDING: 'Bekliyor',
-    IN_PROGRESS: 'Devam Ediyor',
-    COMPLETED: 'Tamamlandı',
-    BLOCKED: 'Engellendi',
-  };
-  return map[status] ?? status;
-}
+export const operationStatusLabel = (status: OperationStatus | string): string => {
+  const labels: Record<string, string> = { PENDING: 'Bekliyor', IN_PROGRESS: 'Devam Ediyor', COMPLETED: 'Tamamlandı' };
+  return labels[status] || status;
+};
 
-export function taskStatusColor(status: TaskStatus): string {
-  const map: Record<TaskStatus, string> = {
+export const operationTypeColor = (type: OperationType | string): string => {
+  const colors: Record<string, string> = { PICKING: '#3b82f6', PACKING: '#f59e0b', LOADING: '#f97316' };
+  return colors[type] || '#6b7280';
+};
+
+export const operationStatusColor = (status: OperationStatus | string): string => {
+  const colors: Record<string, string> = {
     PENDING: 'bg-slate-100 text-slate-600',
-    IN_PROGRESS: 'bg-blue-100 text-blue-700',
-    COMPLETED: 'bg-emerald-100 text-emerald-700',
-    BLOCKED: 'bg-red-100 text-red-700',
+    IN_PROGRESS: 'bg-blue-50 text-blue-700',
+    COMPLETED: 'bg-emerald-50 text-emerald-700',
   };
-  return map[status] ?? 'bg-gray-100 text-gray-700';
-}
+  return colors[status] || 'bg-slate-100 text-slate-600';
+};
 
-export function packageTypeLabel(type: PackageType): string {
-  const map: Record<PackageType, string> = {
-    BOX: 'Koli',
-    PALLET: 'Palet',
-    PACKAGE: 'Paket',
-  };
-  return map[type] ?? type;
-}
+export const personnelRoleLabel = (role: PersonnelRole | string): string => {
+  const labels: Record<string, string> = { PICKER: 'Toplayıcı', PACKER: 'Paketçi', LOADER: 'Yükleyici', MULTI: 'Çok Yönlü' };
+  return labels[role] || role;
+};
 
-export function packageTypeIcon(type: PackageType): string {
-  const map: Record<PackageType, string> = {
-    BOX: '📦',
-    PALLET: '🪵',
-    PACKAGE: '🎁',
-  };
-  return map[type] ?? '📦';
-}
+export const packageTypeLabel = (type: string): string => {
+  const labels: Record<string, string> = { BOX: 'Koli', PALLET: 'Palet', PACKAGE: 'Paket' };
+  return labels[type] || type;
+};
 
-export function countryTypeLabel(type: string): string {
-  return type === 'DOMESTIC' ? 'Yurt İçi' : 'İhracat';
-}
+export const packageTypeIcon = (type: string): string => {
+  const icons: Record<string, string> = { BOX: '📦', PALLET: '📏', PACKAGE: '📎' };
+  return icons[type] || '📦';
+};
 
-export function roleLabel(role: string): string {
-  const map: Record<string, string> = {
-    PICKER: 'Toplayıcı',
-    PACKER: 'Paketleyici',
-    LOADER: 'Yükleyici',
-    ADMIN: 'Yönetici',
-    PLANNER: 'Planlayıcı',
-    OPERATOR: 'Operatör',
-  };
-  return map[role] ?? role;
-}
+export const formatDate = (date: string | Date | null, format: 'short' | 'long' | 'time' | 'datetime' = 'short'): string => {
+  if (!date) return '—';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '—';
+  switch (format) {
+    case 'short': return d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    case 'long': return d.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' });
+    case 'time': return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    case 'datetime': return d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    default: return d.toLocaleDateString('tr-TR');
+  }
+};
 
-export function truncate(str: string, len = 30): string {
-  return str.length > len ? str.slice(0, len) + '…' : str;
-}
+export const formatDateTime = (date: string | Date | null): string => {
+  return formatDate(date, 'datetime');
+};
 
-export function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
+export const formatTimeAgo = (dateStr: string | null): string => {
+  if (!dateStr) return 'Hiç';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'Az önce';
+  if (minutes < 60) return `${minutes} dk önce`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} sa önce`;
+  const days = Math.floor(hours / 24);
+  return `${days} gün önce`;
+};
+
+export const countryTypeLabel = (type: string): string => {
+  return type === 'YURTDISI' || type === 'EXPORT' ? 'İhracat' : 'Yurtiçi';
+};
+
+export const formatWeight = (kg: number): string => {
+  if (kg >= 1000) return `${(kg / 1000).toFixed(1)} ton`;
+  return `${kg.toFixed(1)} kg`;
+};
+
+export const formatVolume = (m3: number): string => {
+  return `${m3.toFixed(2)} m³`;
+};

@@ -3,13 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAppStore } from './store/useAppStore';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { AdminPage } from './pages/AdminPage';
 import { DashboardPage } from './pages/DashboardPage';
-import { PlanningPage } from './pages/PlanningPage';
-import { ExecutionPage } from './pages/ExecutionPage';
+import { ErpPoolPage } from './pages/ErpPoolPage';
+import { PreparationControlPage } from './pages/PreparationControlPage';
+import { OperationPlanningPage } from './pages/OperationPlanningPage';
+import { ShipmentCompletionPage } from './pages/ShipmentCompletionPage';
 import { VehiclePlanningPage } from './pages/VehiclePlanningPage';
 import { Loading3DPage } from './pages/Loading3DPage';
+import { ReportsPage } from './pages/ReportsPage';
+import { AdminPage } from './pages/AdminPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const currentUser = useAppStore((s) => s.currentUser);
@@ -25,89 +27,34 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const { currentUser, initializeData, shipments } = useAppStore();
+  const { currentUser, initializeData } = useAppStore();
 
-  // Initialize data if logged in but no data
   useEffect(() => {
-    if (currentUser && shipments.length === 0) {
+    if (currentUser) {
+      // In production, data comes from API - initialize mock as fallback
       initializeData();
     }
-  }, [currentUser]);
-
-  // Start ERP sync polling
-  useEffect(() => {
-    if (!currentUser) return;
-    const interval = setInterval(() => {
-      // In production: calls /api/erp/sync
-      // Here: simulated sync tick (handled in store)
-    }, 60000);
-    return () => clearInterval(interval);
   }, [currentUser]);
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <AdminPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/planning"
-          element={
-            <ProtectedRoute>
-              <PlanningPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/execution"
-          element={
-            <ProtectedRoute>
-              <ExecutionPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/vehicle-planning"
-          element={
-            <ProtectedRoute>
-              <VehiclePlanningPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/loading-3d"
-          element={
-            <ProtectedRoute>
-              <Loading3DPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* Ana Sistem Akışı */}
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/erp-pool" element={<ProtectedRoute><ErpPoolPage /></ProtectedRoute>} />
+        <Route path="/preparation" element={<ProtectedRoute><PreparationControlPage /></ProtectedRoute>} />
+        <Route path="/planning" element={<ProtectedRoute><OperationPlanningPage /></ProtectedRoute>} />
+        <Route path="/vehicle-planning" element={<ProtectedRoute><VehiclePlanningPage /></ProtectedRoute>} />
+        <Route path="/loading-3d" element={<ProtectedRoute><Loading3DPage /></ProtectedRoute>} />
+        <Route path="/execution" element={<ProtectedRoute><ShipmentCompletionPage /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+        <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
 
         {/* Default redirect */}
-        <Route
-          path="/"
-          element={<Navigate to={currentUser ? '/dashboard' : '/login'} replace />}
-        />
-        <Route
-          path="*"
-          element={<Navigate to={currentUser ? '/dashboard' : '/login'} replace />}
-        />
+        <Route path="/" element={<Navigate to={currentUser ? '/dashboard' : '/login'} replace />} />
+        <Route path="*" element={<Navigate to={currentUser ? '/dashboard' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
   );

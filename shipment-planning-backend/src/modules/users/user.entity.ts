@@ -10,6 +10,7 @@ export enum UserRole {
   ADMIN = 'admin',
   PLANNER = 'planner',
   WAREHOUSE = 'warehouse',
+  OPERATOR = 'operator',
   VIEWER = 'viewer',
 }
 

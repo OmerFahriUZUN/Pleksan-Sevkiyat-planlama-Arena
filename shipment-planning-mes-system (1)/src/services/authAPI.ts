@@ -1,61 +1,29 @@
 import { apiClient } from './apiClient';
 import type { AuthUser } from '../types';
 
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  username: string;
-  email: string;
-  password: string;
-  fullName: string;
-  role?: string;
-}
-
 export interface LoginResponse {
   access_token: string;
   user: AuthUser;
 }
 
-export interface ProfileResponse extends AuthUser {}
+export interface RegisterResponse {
+  access_token: string;
+  user: AuthUser;
+}
 
 export const authAPI = {
-  login: async (data: LoginRequest): Promise<LoginResponse> => {
-    const response = await apiClient.post<LoginResponse>('/auth/login', data);
-    if (response.data.access_token) {
-      localStorage.setItem('authToken', response.data.access_token);
-      localStorage.setItem('authUser', JSON.stringify(response.data.user));
-    }
+  login: async (username: string, password: string): Promise<LoginResponse> => {
+    const response = await apiClient.post<LoginResponse>('/auth/login', { username, password });
     return response.data;
   },
 
-  register: async (data: RegisterRequest): Promise<LoginResponse> => {
-    const response = await apiClient.post<LoginResponse>('/auth/register', data);
-    if (response.data.access_token) {
-      localStorage.setItem('authToken', response.data.access_token);
-      localStorage.setItem('authUser', JSON.stringify(response.data.user));
-    }
+  register: async (data: { username: string; email: string; password: string; fullName: string; role?: string }): Promise<RegisterResponse> => {
+    const response = await apiClient.post<RegisterResponse>('/auth/register', data);
     return response.data;
   },
 
-  getProfile: async (): Promise<ProfileResponse> => {
-    const response = await apiClient.get<ProfileResponse>('/auth/profile');
+  getProfile: async (): Promise<AuthUser> => {
+    const response = await apiClient.get<AuthUser>('/auth/profile');
     return response.data;
-  },
-
-  logout: async (): Promise<void> => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('authUser');
-  },
-
-  getStoredUser: (): AuthUser | null => {
-    const stored = localStorage.getItem('authUser');
-    return stored ? JSON.parse(stored) : null;
-  },
-
-  getToken: (): string | null => {
-    return localStorage.getItem('authToken');
   },
 };

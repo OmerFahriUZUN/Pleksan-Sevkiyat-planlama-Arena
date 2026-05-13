@@ -1,44 +1,17 @@
-import {
-  IsString,
-  IsOptional,
-  IsEnum,
-  IsDateString,
-  IsNumber,
-  IsUUID,
-  IsArray,
-  ValidateNested,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsEnum, IsDateString, IsNumber } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ShipmentStatus, ShipmentPriority } from '../shipment-plan.entity';
-import { OrderItemDto } from './create-shipment-plan.dto';
-import { ShipmentTaskDto } from './shipment-plan-task.dto';
 
 export class UpdateShipmentPlanDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  description?: string;
+  sevkiyat_no?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  erpOrderId?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  erpCustomerId?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  erpCustomerName?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  erpCustomerAddress?: string;
+  siparis_no?: string;
 
   @ApiPropertyOptional({ enum: ShipmentStatus })
   @IsOptional()
@@ -50,67 +23,28 @@ export class UpdateShipmentPlanDto {
   @IsEnum(ShipmentPriority)
   priority?: ShipmentPriority;
 
-  @ApiPropertyOptional({ example: '2024-12-01' })
-  @IsOptional()
-  @IsDateString()
-  plannedShipDate?: string;
-
-  @ApiPropertyOptional({ example: '2024-12-02' })
-  @IsOptional()
-  @IsDateString()
-  plannedDeliveryDate?: string;
-
   @ApiPropertyOptional()
   @IsOptional()
   @IsDateString()
-  actualShipDate?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsDateString()
-  actualDeliveryDate?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  vehicleId?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  assignedToId?: string;
+  sevkiyat_tarihi?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()
-  totalWeightKg?: number;
+  toplam_agirlik_kg?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()
-  totalPalletCount?: number;
+  toplam_palet?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()
-  totalBoxCount?: number;
-
-  @ApiPropertyOptional({ type: [OrderItemDto] })
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => OrderItemDto)
-  orderItems?: OrderItemDto[];
-
-  @ApiPropertyOptional({ type: [ShipmentTaskDto] })
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ShipmentTaskDto)
-  workflowTasks?: ShipmentTaskDto[];
+  toplam_koli?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  notes?: string;
+  revision_notes?: string;
 }

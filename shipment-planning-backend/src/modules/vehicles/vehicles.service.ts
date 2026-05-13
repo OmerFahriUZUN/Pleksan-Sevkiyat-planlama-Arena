@@ -17,11 +17,11 @@ export class VehiclesService {
 
   async create(dto: CreateVehicleDto): Promise<Vehicle> {
     const existing = await this.vehicleRepo.findOne({
-      where: { plateNumber: dto.plateNumber },
+      where: { plaka: dto.plaka },
     });
     if (existing) {
       throw new ConflictException(
-        `${dto.plateNumber} plakalı araç zaten mevcut.`,
+        `${dto.plaka} plakalı araç zaten mevcut.`,
       );
     }
     const vehicle = this.vehicleRepo.create(dto);
@@ -31,7 +31,7 @@ export class VehiclesService {
   async findAll(): Promise<Vehicle[]> {
     return this.vehicleRepo.find({
       where: { isActive: true },
-      order: { plateNumber: 'ASC' },
+      order: { plaka: 'ASC' },
     });
   }
 

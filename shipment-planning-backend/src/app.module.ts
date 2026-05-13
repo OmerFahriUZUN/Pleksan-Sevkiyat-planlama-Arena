@@ -5,10 +5,8 @@ import { ErpApiModule } from './modules/erp/erp-api.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ShipmentPlansModule } from './modules/shipment-plans/shipment-plans.module';
-import { OrdersModule } from './modules/orders/orders.module';
-import { ProductsModule } from './modules/products/products.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
-import { CustomersModule } from './modules/customers/customers.module';
+import { PersonnelModule } from './modules/personnel/personnel.module';
 import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
@@ -19,10 +17,8 @@ import { ReportsModule } from './modules/reports/reports.module';
     AuthModule,
     UsersModule,
     ShipmentPlansModule,
-    OrdersModule,
-    ProductsModule,
     VehiclesModule,
-    CustomersModule,
+    PersonnelModule,
     ReportsModule,
   ],
 })

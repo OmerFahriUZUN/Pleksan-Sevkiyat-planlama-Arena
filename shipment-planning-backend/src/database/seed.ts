@@ -1,6 +1,70 @@
+import { DeepPartial } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { User, UserRole } from '../modules/users/user.entity';
+import * as crypto from 'crypto';
 import { AppDataSource } from './data-source';
+import { User, UserRole } from '../modules/users/user.entity';
+import { Personnel, PersonnelRole } from '../modules/personnel/personnel.entity';
+import { Vehicle, VehicleStatus } from '../modules/vehicles/vehicle.entity';
+import {
+  ShipmentPlan,
+  ShipmentStatus,
+  ShipmentPriority,
+  OrderProduct,
+  LoadingSequence,
+  Operation,
+  OperationType,
+  OperationStatus,
+} from '../modules/shipment-plans/shipment-plan.entity';
+const SAMPLE_OPERATOR_PASSWORD = '123456';
+
+function hashData(data: any) {
+  return crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
+}
+
+function buildProduct(detail: any, idx: number): OrderProduct {
+  const volume = detail.hacim_m3 ?? (detail.koli_uzunluk_m && detail.koli_genislik_m && detail.koli_yukseklik_m
+    ? detail.koli_uzunluk_m * detail.koli_genislik_m * detail.koli_yukseklik_m
+    : 0.1);
+
+  return {
+    id: `prod-${Date.now()}-${idx}`,
+    stok_kodu: detail.stok_kodu,
+    stok_adi: detail.stok_adi,
+    miktar: detail.sevk_emir_miktari,
+    kalan_miktar: detail.sevk_emri_kalan,
+    koli_sayisi: detail.koli_sayisi ?? 1,
+    palet_sayisi: detail.palet_sayisi ?? 0,
+    hacim_m3: volume,
+    agirlik: detail.agirlik ?? 0,
+    depo_kodu: detail.depo_kodu || 'DEPO-01',
+    scanned_quantity: 0,
+    koli_uzunluk_m: detail.koli_uzunluk_m,
+    koli_genislik_m: detail.koli_genislik_m,
+    koli_yukseklik_m: detail.koli_yukseklik_m,
+  };
+}
+
+function estimateProductDimensions(product: OrderProduct) {
+  if (product.palet_sayisi > 0) {
+    return { length_mm: 1200, width_mm: 1000, height_mm: 1500 };
+  }
+
+  if (product.koli_uzunluk_m && product.koli_genislik_m && product.koli_yukseklik_m) {
+    return {
+      length_mm: Math.round(product.koli_uzunluk_m * 1000),
+      width_mm: Math.round(product.koli_genislik_m * 1000),
+      height_mm: Math.round(product.koli_yukseklik_m * 1000),
+    };
+  }
+
+  const unitVolume = Math.max(0.04, product.hacim_m3 / Math.max(1, product.koli_sayisi || 1));
+  const base = Math.min(1200, Math.max(400, Math.round(Math.cbrt(unitVolume) * 1000)));
+  return {
+    length_mm: base,
+    width_mm: Math.max(400, Math.round(base * 0.85)),
+    height_mm: Math.max(350, Math.round(base * 0.7)),
+  };
+}
 
 async function seed() {
   if (!AppDataSource.isInitialized) {
@@ -8,22 +72,19 @@ async function seed() {
   }
 
   const userRepository = AppDataSource.getRepository(User);
-
-  // Admin kullanıcısını kontrol et
-  let adminUser = await userRepository.findOne({
-    where: { username: 'admin' },
-  });
+  const personnelRepository = AppDataSource.getRepository(Personnel);
+  const vehicleRepository = AppDataSource.getRepository(Vehicle);
+  const shipmentRepository = AppDataSource.getRepository(ShipmentPlan);
 
   const hashedPassword = await bcrypt.hash('Admin123!', 12);
+  let adminUser = await userRepository.findOne({ where: { username: 'admin' } });
 
   if (adminUser) {
-    // Var olanı güncelle
     adminUser.password = hashedPassword;
     adminUser.isActive = true;
     await userRepository.save(adminUser);
     console.log('✓ Admin kullanıcısı güncellendi');
   } else {
-    // Yeni oluştur
     adminUser = userRepository.create({
       username: 'admin',
       email: 'admin@pleksan.com',
@@ -36,7 +97,6 @@ async function seed() {
     console.log('✓ Admin kullanıcısı oluşturuldu');
   }
 
-  // Test kullanıcıları
   const testUsers = [
     {
       username: 'planner01',
@@ -62,14 +122,12 @@ async function seed() {
   ];
 
   for (const userData of testUsers) {
-    let user = await userRepository.findOne({
-      where: { username: userData.username },
-    });
-
+    let user = await userRepository.findOne({ where: { username: userData.username } });
     const hashedPwd = await bcrypt.hash(userData.password, 12);
 
     if (user) {
       user.password = hashedPwd;
+      user.role = userData.role;
       user.isActive = true;
       await userRepository.save(user);
       console.log(`✓ ${userData.username} kullanıcısı güncellendi`);
@@ -84,12 +142,426 @@ async function seed() {
     }
   }
 
+  const operatorUsers = [
+    {
+      username: 'Ali Yılmaz',
+      email: 'aliyilmaz@pleksan.com',
+      password: SAMPLE_OPERATOR_PASSWORD,
+      fullName: 'Ali Yılmaz',
+      role: UserRole.OPERATOR,
+    },
+    {
+      username: 'Damla Korkmaz',
+      email: 'damla.korkmaz@pleksan.com',
+      password: SAMPLE_OPERATOR_PASSWORD,
+      fullName: 'Damla Korkmaz',
+      role: UserRole.OPERATOR,
+    },
+    {
+      username: 'Murat Şahin',
+      email: 'murat.sahin@pleksan.com',
+      password: SAMPLE_OPERATOR_PASSWORD,
+      fullName: 'Murat Şahin',
+      role: UserRole.OPERATOR,
+    },
+  ];
+
+  for (const userData of operatorUsers) {
+    let user = await userRepository.findOne({ where: { username: userData.username } });
+    const hashedPwd = await bcrypt.hash(userData.password, 12);
+
+    if (user) {
+      user.password = hashedPwd;
+      user.role = userData.role;
+      user.isActive = true;
+      await userRepository.save(user);
+      console.log(`✓ ${userData.username} operatör kullanıcısı güncellendi`);
+    } else {
+      user = userRepository.create({
+        ...userData,
+        password: hashedPwd,
+        isActive: true,
+      });
+      await userRepository.save(user);
+      console.log(`✓ ${userData.username} operatör kullanıcısı oluşturuldu`);
+    }
+  }
+
+  const samplePersonnel = [
+    {
+      ad_soyad: 'Ali Yılmaz',
+      role: PersonnelRole.PICKER,
+      vardiya_baslangic: '08:00',
+      vardiya_bitis: '17:00',
+    },
+    {
+      ad_soyad: 'Damla Korkmaz',
+      role: PersonnelRole.LOADER,
+      vardiya_baslangic: '08:00',
+      vardiya_bitis: '17:00',
+    },
+    {
+      ad_soyad: 'Murat Şahin',
+      role: PersonnelRole.PACKER,
+      vardiya_baslangic: '08:00',
+      vardiya_bitis: '17:00',
+    },
+  ];
+
+  for (const person of samplePersonnel) {
+    let existing = await personnelRepository.findOne({ where: { ad_soyad: person.ad_soyad } });
+    if (existing) {
+      existing.role = person.role;
+      existing.vardiya_baslangic = person.vardiya_baslangic;
+      existing.vardiya_bitis = person.vardiya_bitis;
+      existing.isActive = true;
+      await personnelRepository.save(existing);
+      console.log(`✓ Personel ${person.ad_soyad} güncellendi`);
+    } else {
+      existing = personnelRepository.create({
+        ...person,
+        isActive: true,
+      });
+      await personnelRepository.save(existing);
+      console.log(`✓ Personel ${person.ad_soyad} oluşturuldu`);
+    }
+  }
+
+  const sampleVehicles = [
+    {
+      arac_tipi: 'Panel Van',
+      plaka: '34PLS123',
+      sofor_adi: 'Mehmet Şahin',
+      sofor_telefon: '05551234567',
+      ic_uzunluk_mm: 6000,
+      ic_genislik_mm: 2400,
+      ic_yukseklik_mm: 2500,
+      max_agirlik_kg: 3500,
+      palet_kapasitesi: 10,
+      status: VehicleStatus.AVAILABLE,
+    },
+  ];
+
+  for (const vehicle of sampleVehicles) {
+    let existing = await vehicleRepository.findOne({ where: { plaka: vehicle.plaka } });
+    if (existing) {
+      Object.assign(existing, vehicle, { isActive: true });
+      await vehicleRepository.save(existing);
+      console.log(`✓ Araç ${vehicle.plaka} güncellendi`);
+    } else {
+      existing = vehicleRepository.create({
+        ...vehicle,
+        isActive: true,
+      });
+      await vehicleRepository.save(existing);
+      console.log(`✓ Araç ${vehicle.plaka} oluşturuldu`);
+    }
+  }
+
+  const defaultVehicle = await vehicleRepository.findOne({ where: { plaka: '34PLS123' } });
+
+  const sampleErpHeader = {
+    is_yeri: 'Merkez Depo',
+    kart_bilgisi: 'YURTICI',
+    sevkiyat_no: 'ERP-1001',
+    siparis_no: 'SIP-1524',
+    cari_kod: 'C12345',
+    cari_ad: 'Pleksan Müşteri A.Ş.',
+    nakliye_yeri: 'İstanbul Merkez',
+    islem_tarihi: new Date().toISOString(),
+    termin_tarihi: new Date(Date.now() + 2 * 24 * 60 * 60000).toISOString(),
+    sevkiyat_tarihi: new Date(Date.now() + 3 * 24 * 60 * 60000).toISOString(),
+    cari_ulke: 'Türkiye',
+    cari_sehir: 'İstanbul',
+    cari_ilce: 'Ümraniye',
+  };
+
+  const sampleErpDetails = [
+    {
+      stok_kodu: 'PLS-100',
+      stok_adi: 'Pleksan Model 100',
+      sevk_emir_miktari: 8,
+      sevk_emri_kalan: 8,
+      depo_kodu: 'DEPO-01',
+      sevk_tarihi: new Date().toISOString(),
+      koli_sayisi: 4,
+      palet_sayisi: 1,
+      hacim_m3: 0.36,
+      agirlik: 220,
+      koli_uzunluk_m: 1.2,
+      koli_genislik_m: 0.8,
+      koli_yukseklik_m: 0.4,
+    },
+    {
+      stok_kodu: 'PLS-200',
+      stok_adi: 'Pleksan Model 200',
+      sevk_emir_miktari: 6,
+      sevk_emri_kalan: 6,
+      depo_kodu: 'DEPO-01',
+      sevk_tarihi: new Date().toISOString(),
+      koli_sayisi: 3,
+      palet_sayisi: 0,
+      hacim_m3: 0.18,
+      agirlik: 120,
+      koli_uzunluk_m: 0.8,
+      koli_genislik_m: 0.6,
+      koli_yukseklik_m: 0.5,
+    },
+    {
+      stok_kodu: 'PLS-300',
+      stok_adi: 'Pleksan Model 300',
+      sevk_emir_miktari: 5,
+      sevk_emri_kalan: 5,
+      depo_kodu: 'DEPO-01',
+      sevk_tarihi: new Date().toISOString(),
+      koli_sayisi: 2,
+      palet_sayisi: 0,
+      hacim_m3: 0.14,
+      agirlik: 90,
+      koli_uzunluk_m: 0.9,
+      koli_genislik_m: 0.7,
+      koli_yukseklik_m: 0.35,
+    },
+  ];
+
+  const sampleShipmentHash = hashData({ header: sampleErpHeader, details: sampleErpDetails });
+  let sampleShipment = await shipmentRepository.findOne({ where: { sevkiyat_no: sampleErpHeader.sevkiyat_no } });
+
+  const sampleProducts = sampleErpDetails.map(buildProduct);
+  const sampTotals = {
+    toplam_koli: sampleProducts.reduce((sum, p) => sum + p.koli_sayisi, 0),
+    toplam_palet: sampleProducts.reduce((sum, p) => sum + p.palet_sayisi, 0),
+    toplam_agirlik_kg: sampleProducts.reduce((sum, p) => sum + p.agirlik, 0),
+    toplam_hacim_m3: sampleProducts.reduce((sum, p) => sum + p.hacim_m3, 0),
+  };
+
+  const vehicleAssignmentId = `VA-${Date.now()}-1`;
+  const sampleAssignment = {
+    id: vehicleAssignmentId,
+    vehicle_id: defaultVehicle?.id || 'vehicle-sample-1',
+    plate: defaultVehicle?.plaka || '34PLS123',
+    driver_name: defaultVehicle?.sofor_adi || 'Mehmet Şahin',
+    load_percentage: 80,
+    delivery_sequence: 1,
+  };
+
+  const sampleLoadingSequences: LoadingSequence[] = sampleProducts.map((product, idx) => {
+    const dims = estimateProductDimensions(product);
+    return {
+      id: `LS-${Date.now()}-${idx}`,
+      vehicle_assignment_id: vehicleAssignmentId,
+      product_code: product.stok_kodu,
+      product_name: product.stok_adi,
+      pallet_count: product.palet_sayisi,
+      box_count: product.koli_sayisi,
+      sequence_order: idx + 1,
+      is_first_delivery: true,
+      is_last_delivery: false,
+      weight_kg: product.agirlik,
+      volume_m3: product.hacim_m3,
+      length_mm: dims.length_mm,
+      width_mm: dims.width_mm,
+      height_mm: dims.height_mm,
+    };
+  });
+
+  const sampleShipmentData = {
+    sevkiyat_no: sampleErpHeader.sevkiyat_no,
+    siparis_no: sampleErpHeader.siparis_no,
+    kart_bilgisi: sampleErpHeader.kart_bilgisi,
+    cari_kod: sampleErpHeader.cari_kod,
+    cari_ad: sampleErpHeader.cari_ad,
+    nakliye_yeri: sampleErpHeader.nakliye_yeri,
+    cari_ulke: sampleErpHeader.cari_ulke,
+    cari_sehir: sampleErpHeader.cari_sehir,
+    cari_ilce: sampleErpHeader.cari_ilce,
+    termin_tarihi: new Date(sampleErpHeader.termin_tarihi),
+    sevkiyat_tarihi: sampleErpHeader.sevkiyat_tarihi ? new Date(sampleErpHeader.sevkiyat_tarihi) : null,
+    islem_tarihi: sampleErpHeader.islem_tarihi ? new Date(sampleErpHeader.islem_tarihi) : null,
+    teslimat_adresi: `${sampleErpHeader.nakliye_yeri || ''}, ${sampleErpHeader.cari_ilce || ''}/${sampleErpHeader.cari_sehir || ''}`,
+    erp_raw_header: sampleErpHeader,
+    erp_raw_details: sampleErpDetails,
+    erp_data_hash: sampleShipmentHash,
+    urun_listesi: sampleProducts,
+    toplam_koli: sampTotals.toplam_koli,
+    toplam_palet: sampTotals.toplam_palet,
+    toplam_agirlik_kg: sampTotals.toplam_agirlik_kg,
+    toplam_hacim_m3: sampTotals.toplam_hacim_m3,
+    preparation_checks: sampleProducts.map((product) => ({
+      stok_kodu: product.stok_kodu,
+      stok_adi: product.stok_adi,
+      is_stock_sufficient: true,
+      is_product_ready: true,
+      is_quality_approved: true,
+      is_warehouse_suitable: true,
+      notes: '',
+    })),
+    status: ShipmentStatus.ERP_IMPORTED,
+    priority: ShipmentPriority.NORMAL,
+    is_partial_shipment: false,
+    partial_shipment_percentage: 0,
+    vehicle_assignments: [sampleAssignment],
+    loading_sequences: sampleLoadingSequences,
+  };
+
+  if (sampleShipment) {
+    Object.assign(sampleShipment, sampleShipmentData);
+    await shipmentRepository.save(sampleShipment);
+    console.log('✓ ERP havuzuna örnek sevkiyat güncellendi');
+  } else {
+    sampleShipment = shipmentRepository.create(
+  sampleShipmentData as DeepPartial<ShipmentPlan>
+);
+    await shipmentRepository.save(sampleShipment);
+    console.log('✓ ERP havuzuna örnek sevkiyat oluşturuldu');
+  }
+
+  const personnelList = await personnelRepository.find();
+  const picker = personnelList.find((p) => p.role === PersonnelRole.PICKER);
+  const packer = personnelList.find((p) => p.role === PersonnelRole.PACKER);
+  const loader = personnelList.find((p) => p.role === PersonnelRole.LOADER);
+
+  const samplePlannedHeader = {
+    is_yeri: 'Merkez Depo',
+    kart_bilgisi: 'YURTICI',
+    sevkiyat_no: 'ERP-PLN-2001',
+    siparis_no: 'SIP-2002',
+    cari_kod: 'C98765',
+    cari_ad: 'Pleksan Tedarik Zinciri',
+    nakliye_yeri: 'İstanbul Depo',
+    islem_tarihi: new Date().toISOString(),
+    termin_tarihi: new Date(Date.now() + 5 * 24 * 60 * 60000).toISOString(),
+    sevkiyat_tarihi: new Date(Date.now() + 6 * 24 * 60 * 60000).toISOString(),
+    cari_ulke: 'Türkiye',
+    cari_sehir: 'İstanbul',
+    cari_ilce: 'Ataşehir',
+  };
+
+  const samplePlannedDetails = [
+    {
+      stok_kodu: 'PLN-501',
+      stok_adi: 'Planlama Ürünü 501',
+      sevk_emir_miktari: 10,
+      sevk_emri_kalan: 10,
+      depo_kodu: 'DEPO-02',
+      sevk_tarihi: new Date().toISOString(),
+      koli_sayisi: 5,
+      palet_sayisi: 1,
+      hacim_m3: 0.45,
+      agirlik: 250,
+      koli_uzunluk_m: 1.2,
+      koli_genislik_m: 0.8,
+      koli_yukseklik_m: 0.5,
+    },
+  ];
+
+  const samplePlannedHash = hashData({ header: samplePlannedHeader, details: samplePlannedDetails });
+  let samplePlannedShipment = await shipmentRepository.findOne({ where: { sevkiyat_no: samplePlannedHeader.sevkiyat_no } });
+  const samplePlannedProducts = samplePlannedDetails.map(buildProduct);
+
+  const operations: Operation[] = [];
+  const now = new Date();
+  if (picker && packer && loader) {
+    operations.push({
+      id: `OP-${samplePlannedHeader.sevkiyat_no}-PICK`,
+      type: OperationType.PICKING,
+      personel_ids: [picker.id],
+      personel_names: [picker.ad_soyad],
+      planned_start: now.toISOString(),
+      planned_end: new Date(now.getTime() + 20 * 60000).toISOString(),
+      actual_start: null,
+      actual_end: null,
+      planned_duration_minutes: 20,
+      actual_duration_minutes: null,
+      status: OperationStatus.PENDING,
+    });
+    operations.push({
+      id: `OP-${samplePlannedHeader.sevkiyat_no}-PACK`,
+      type: OperationType.PACKING,
+      personel_ids: [packer.id],
+      personel_names: [packer.ad_soyad],
+      planned_start: new Date(now.getTime() + 20 * 60000).toISOString(),
+      planned_end: new Date(now.getTime() + 45 * 60000).toISOString(),
+      actual_start: null,
+      actual_end: null,
+      planned_duration_minutes: 25,
+      actual_duration_minutes: null,
+      status: OperationStatus.PENDING,
+    });
+    operations.push({
+      id: `OP-${samplePlannedHeader.sevkiyat_no}-LOAD`,
+      type: OperationType.LOADING,
+      personel_ids: [loader.id],
+      personel_names: [loader.ad_soyad],
+      planned_start: new Date(now.getTime() + 45 * 60000).toISOString(),
+      planned_end: new Date(now.getTime() + 60 * 60000).toISOString(),
+      actual_start: null,
+      actual_end: null,
+      planned_duration_minutes: 15,
+      actual_duration_minutes: null,
+      status: OperationStatus.PENDING,
+    });
+  }
+
+  const samplePlannedData = {
+    sevkiyat_no: samplePlannedHeader.sevkiyat_no,
+    siparis_no: samplePlannedHeader.siparis_no,
+    kart_bilgisi: samplePlannedHeader.kart_bilgisi,
+    cari_kod: samplePlannedHeader.cari_kod,
+    cari_ad: samplePlannedHeader.cari_ad,
+    nakliye_yeri: samplePlannedHeader.nakliye_yeri,
+    cari_ulke: samplePlannedHeader.cari_ulke,
+    cari_sehir: samplePlannedHeader.cari_sehir,
+    cari_ilce: samplePlannedHeader.cari_ilce,
+    termin_tarihi: new Date(samplePlannedHeader.termin_tarihi),
+    sevkiyat_tarihi: samplePlannedHeader.sevkiyat_tarihi ? new Date(samplePlannedHeader.sevkiyat_tarihi) : null,
+    islem_tarihi: samplePlannedHeader.islem_tarihi ? new Date(samplePlannedHeader.islem_tarihi) : null,
+    teslimat_adresi: `${samplePlannedHeader.nakliye_yeri || ''}, ${samplePlannedHeader.cari_ilce || ''}/${samplePlannedHeader.cari_sehir || ''}`,
+    erp_raw_header: samplePlannedHeader,
+    erp_raw_details: samplePlannedDetails,
+    erp_data_hash: samplePlannedHash,
+    urun_listesi: samplePlannedProducts,
+    toplam_koli: samplePlannedProducts.reduce((sum, p) => sum + p.koli_sayisi, 0),
+    toplam_palet: samplePlannedProducts.reduce((sum, p) => sum + p.palet_sayisi, 0),
+    toplam_agirlik_kg: samplePlannedProducts.reduce((sum, p) => sum + p.agirlik, 0),
+    toplam_hacim_m3: samplePlannedProducts.reduce((sum, p) => sum + p.hacim_m3, 0),
+    preparation_checks: samplePlannedProducts.map((product) => ({
+      stok_kodu: product.stok_kodu,
+      stok_adi: product.stok_adi,
+      is_stock_sufficient: true,
+      is_product_ready: true,
+      is_quality_approved: true,
+      is_warehouse_suitable: true,
+      notes: '',
+    })),
+    status: ShipmentStatus.PLANNED,
+    priority: ShipmentPriority.NORMAL,
+    is_partial_shipment: false,
+    partial_shipment_percentage: 0,
+    operations: operations.length > 0 ? operations : undefined,
+  };
+
+  if (samplePlannedShipment) {
+    Object.assign(samplePlannedShipment, samplePlannedData);
+    await shipmentRepository.save(samplePlannedShipment);
+    console.log('✓ Planlama örneği sevkiyat güncellendi');
+  } else {
+    samplePlannedShipment = shipmentRepository.create(
+  samplePlannedData as DeepPartial<ShipmentPlan>
+);
+    await shipmentRepository.save(samplePlannedShipment);
+    console.log('✓ Planlama örneği sevkiyat oluşturuldu');
+  }
+
   console.log('\n✓ Seeding tamamlandı!');
   console.log('\n--- Test Hesapları ---');
-  console.log('Admin     | admin     | admin');
+  console.log('Admin     | admin     | Admin123!');
   console.log('Planner   | planner01 | Planner123!');
   console.log('Warehouse | warehouse01 | Warehouse123!');
   console.log('Viewer    | viewer01  | Viewer123!');
+  console.log('Operator  | Ali Yılmaz | 123456');
+  console.log('Operator  | Damla Korkmaz | 123456');
+  console.log('Operator  | Murat Şahin | 123456');
 
   await AppDataSource.destroy();
 }

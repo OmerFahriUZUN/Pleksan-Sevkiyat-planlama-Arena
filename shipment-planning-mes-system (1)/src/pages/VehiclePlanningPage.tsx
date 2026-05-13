@@ -1,74 +1,96 @@
-import React, { useState, useMemo } from 'react';
-import {
-  Truck, Package, MapPin, Weight, ArrowUpDown, ChevronDown,
-  ChevronRight, Plus, Zap, AlertTriangle, CheckCircle2,
-  List, MoveVertical, RefreshCw, BarChart3
-} from 'lucide-react';
-import { useAppStore } from '../store/useAppStore';
-import {
-  packageTypeLabel, packageTypeIcon, countryTypeLabel, formatDate
-} from '../utils/helpers';
-import { calculateVehicleUtilization } from '../utils/vehiclePlanning';
+import { useState, useEffect } from 'react';
+import { Truck, MapPin, Weight, RefreshCw, Box, ChevronRight, Package, User } from 'lucide-react';
+import { shipmentPlansAPI, vehiclesAPI, handleApiError } from '../services';
+import { formatWeight, formatVolume } from '../utils/helpers';
+import { Vehicle3DView } from '../components/Vehicle3DView';
+import type { ShipmentPlan, Vehicle } from '../types';
+
+const COLORS = [
+  '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+  '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#14B8A6',
+];
 
 export function VehiclePlanningPage() {
-  const {
-    vehicles, vehicleAssignments, shipments, packages,
-    loadingPlans, assignVehicle, generateLoadingPlan, addNotification
-  } = useAppStore();
+  const [shipments, setShipments] = useState<ShipmentPlan[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedShipmentId, setSelectedShipmentId] = useState<string | null>(null);
+  const [placementData, setPlacementData] = useState<any>(null);
+  const [placementLoading, setPlacementLoading] = useState(false);
 
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  const [assignModal, setAssignModal] = useState<string | null>(null); // shipment_id
+  useEffect(() => { loadData(); }, []);
 
-  const selectedVehicle = vehicles.find((v) => v.id === selectedVehicleId);
+  const loadData = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [sData, vData] = await Promise.all([
+        shipmentPlansAPI.getAll(),
+        vehiclesAPI.getAll()
+      ]);
+      setShipments(sData.filter((s) => s.status !== 'cancelled'));
+      setVehicles(vData);
+    } catch (err) {
+      setError(handleApiError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const vehicleData = useMemo(() => {
-    return vehicles.map((v) => {
-      const assignments = vehicleAssignments
-        .filter((va) => va.vehicle_id === v.id)
-        .sort((a, b) => a.delivery_sequence - b.delivery_sequence);
+  const loadPlacement = async (shipmentId: string) => {
+    setPlacementLoading(true);
+    setPlacementData(null);
+    try {
+      const data = await shipmentPlansAPI.getVehiclePlacement(shipmentId);
+      setPlacementData(data);
+    } catch (err) {
+      setError(handleApiError(err));
+    } finally {
+      setPlacementLoading(false);
+    }
+  };
 
-      const assignedShipments = assignments.map((va) => {
-        const shipment = shipments.find((s) => s.id === va.shipment_id);
-        const pkgs = packages.filter((p) => p.shipment_id === va.shipment_id);
-        return { ...va, shipment, pkgs };
-      });
+  const handleSelectShipment = (id: string) => {
+    setSelectedShipmentId(id);
+    loadPlacement(id);
+  };
 
-      const allPkgs = packages.filter((p) =>
-        assignments.some((va) => va.shipment_id === p.shipment_id)
-      );
+  const selectedShipment = shipments.find(s => s.id === selectedShipmentId);
 
-      const totalWeight = allPkgs.reduce((s, p) => s + p.total_weight, 0);
-      const totalVolume = allPkgs.reduce((s, p) => s + p.total_volume, 0);
-      const capacity = (v.length_mm * v.width_mm * v.height_mm) / 1_000_000;
+  // Placement verisinden 3D blokları oluştur
+  const build3DBlocks = (assignment: any) => {
+    if (!assignment?.blocks) return [];
+    return assignment.blocks.map((b: any, idx: number) => ({
+      id: b.id || `block-${idx}`,
+      product_code: b.product_code || '',
+      product_name: b.product_name || '',
+      x: b.x ?? 0,
+      y: b.y ?? 0,
+      z: b.z ?? 0,
+      width: b.width ?? 1000,
+      depth: b.depth ?? 1000,
+      height: b.height ?? 1000,
+      color: COLORS[idx % COLORS.length],
+      sequence_order: b.sequence_order ?? idx + 1,
+      box_count: b.box_count ?? 0,
+      weight_kg: b.weight_kg ?? 0,
+    }));
+  };
 
-      const util = calculateVehicleUtilization(allPkgs, v);
-      const loadingPlanItems = loadingPlans.filter((lp) => lp.vehicle_id === v.id);
-
-      return {
-        vehicle: v,
-        assignments: assignedShipments,
-        totalWeight,
-        totalVolume,
-        capacity,
-        utilWeight: util.weight_percent,
-        utilVolume: util.volume_percent,
-        loadingPlanItems,
-      };
-    });
-  }, [vehicles, vehicleAssignments, shipments, packages, loadingPlans]);
-
-  // Unassigned shipments (packaged, not yet assigned)
-  const unassignedShipments = useMemo(() => {
-    const assignedIds = new Set(vehicleAssignments.map((va) => va.shipment_id));
-    return shipments.filter(
-      (s) =>
-        !assignedIds.has(s.id) &&
-        (s.status === 'PACKING' || s.status === 'LOADING') &&
-        packages.some((p) => p.shipment_id === s.id)
-    );
-  }, [shipments, vehicleAssignments, packages]);
-
-  const selectedData = vehicleData.find((vd) => vd.vehicle.id === selectedVehicleId);
+  const getStatusBadge = (status: string) => {
+    const map: Record<string, { label: string; cls: string }> = {
+      erp_imported: { label: 'ERP İthal', cls: 'bg-slate-100 text-slate-600' },
+      ready_for_planning: { label: 'Planlamaya Hazır', cls: 'bg-blue-100 text-blue-700' },
+      planned: { label: 'Planlandı', cls: 'bg-indigo-100 text-indigo-700' },
+      picking: { label: 'Toplama', cls: 'bg-yellow-100 text-yellow-700' },
+      packing: { label: 'Paketleme', cls: 'bg-orange-100 text-orange-700' },
+      loading: { label: 'Yükleme', cls: 'bg-purple-100 text-purple-700' },
+      shipped: { label: 'Sevk Edildi', cls: 'bg-green-100 text-green-700' },
+    };
+    const s = map[status] || { label: status, cls: 'bg-gray-100 text-gray-600' };
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.cls}`}>{s.label}</span>;
+  };
 
   return (
     <div className="p-4 lg:p-6 space-y-6">
@@ -76,357 +98,203 @@ export function VehiclePlanningPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Araç Planlama</h1>
-          <p className="text-slate-500 text-sm">Sevkiyat-araç eşleştirme ve yükleme sıralaması</p>
+          <p className="text-slate-500 text-sm">Sevkiyat-araç eşleştirme ve 3D yükleme görünümü</p>
         </div>
+        <button onClick={loadData} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm">
+          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />Yenile
+        </button>
       </div>
 
-      {/* Unassigned alert */}
-      {unassignedShipments.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle size={16} className="text-amber-600" />
-            <span className="font-semibold text-amber-800 text-sm">{unassignedShipments.length} sevkiyat araç ataması bekliyor</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {unassignedShipments.map((s) => (
-              <div key={s.id} className="flex items-center gap-2 bg-white border border-amber-200 rounded-xl px-3 py-1.5">
-                <span className="font-mono text-xs font-bold text-slate-800">{s.shipment_no}</span>
-                <button
-                  onClick={() => setAssignModal(s.id)}
-                  className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Araç Ata
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Vehicle list */}
-        <div className="space-y-3">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Araçlar ({vehicles.length})</p>
-          {vehicleData.map((vd) => {
-            const selected = selectedVehicleId === vd.vehicle.id;
-            const overweight = vd.totalWeight > vd.vehicle.max_weight;
-            return (
-              <button
-                key={vd.vehicle.id}
-                onClick={() => setSelectedVehicleId(selected ? null : vd.vehicle.id)}
-                className={`w-full text-left bg-white rounded-2xl border shadow-sm p-4 transition-all ${
-                  selected ? 'border-blue-400 shadow-blue-100' : overweight ? 'border-red-200' : 'border-slate-200'
-                } hover:shadow-md`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`p-2 rounded-xl ${selected ? 'bg-blue-100' : 'bg-slate-100'}`}>
-                      <Truck size={16} className={selected ? 'text-blue-600' : 'text-slate-500'} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-800 text-sm">{vd.vehicle.plate}</p>
-                      <p className="text-slate-500 text-xs">{vd.vehicle.driver_name}</p>
-                    </div>
-                  </div>
-                  {overweight && <AlertTriangle size={14} className="text-red-500" />}
-                </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Sol: Sevkiyat Listesi */}
+        <div className="xl:col-span-1 space-y-3">
+          <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Sevkiyatlar</h2>
 
-                {/* Capacity bars */}
-                <div className="space-y-2">
-                  <div>
-                    <div className="flex justify-between text-xs mb-0.5">
-                      <span className="text-slate-500">Ağırlık</span>
-                      <span className={`font-medium ${overweight ? 'text-red-600' : 'text-slate-700'}`}>
-                        {vd.totalWeight.toFixed(1)} / {vd.vehicle.max_weight} kg
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${Math.min(vd.utilWeight, 100)}%`,
-                          background: overweight ? '#ef4444' : vd.utilWeight > 80 ? '#f59e0b' : '#3b82f6',
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-xs mb-0.5">
-                      <span className="text-slate-500">Hacim</span>
-                      <span className="text-slate-700 font-medium">{vd.utilVolume.toFixed(0)}%</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all"
-                        style={{ width: `${Math.min(vd.utilVolume, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
-                  <span className="text-xs text-slate-400">{vd.assignments.length} sevkiyat</span>
-                  <span className="text-xs text-slate-400">
-                    {Math.round(vd.vehicle.length_mm / 1000)}m × {Math.round(vd.vehicle.width_mm / 1000)}m × {Math.round(vd.vehicle.height_mm / 1000)}m
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Vehicle detail */}
-        <div className="lg:col-span-2 space-y-4">
-          {!selectedData ? (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm py-20 text-center">
-              <Truck size={40} className="mx-auto text-slate-300 mb-3" />
-              <p className="text-slate-500 font-medium">Araç seçin</p>
-              <p className="text-slate-400 text-sm">Sol listeden bir araç seçerek detayları görüntüleyin</p>
+          {loading ? (
+            <div className="space-y-2">
+              {[1,2,3].map(i => (
+                <div key={i} className="h-24 bg-slate-100 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : shipments.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">
+              <Package size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Sevkiyat bulunamadı</p>
             </div>
           ) : (
-            <>
-              {/* Vehicle info */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="font-bold text-slate-800 text-lg">{selectedData.vehicle.plate}</h3>
-                    <p className="text-slate-500 text-sm">Sürücü: {selectedData.vehicle.driver_name}</p>
-                  </div>
-                  <div className="text-right text-sm">
-                    <p className="text-slate-500">Kapasite</p>
-                    <p className="font-bold text-slate-800">{selectedData.vehicle.max_weight.toLocaleString()} kg</p>
-                    <p className="text-slate-400 text-xs">
-                      {Math.round(selectedData.vehicle.length_mm / 1000)}m × {Math.round(selectedData.vehicle.width_mm / 1000)}m × {Math.round(selectedData.vehicle.height_mm / 1000)}m
-                    </p>
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: 'Toplam Ağırlık', value: `${selectedData.totalWeight.toFixed(1)} kg`, pct: selectedData.utilWeight, color: '#3b82f6' },
-                    { label: 'Hacim Kullanımı', value: `${selectedData.utilVolume.toFixed(0)}%`, pct: selectedData.utilVolume, color: '#10b981' },
-                    { label: 'Sevkiyat Sayısı', value: String(selectedData.assignments.length), pct: null, color: '#f59e0b' },
-                  ].map((stat) => (
-                    <div key={stat.label} className="bg-slate-50 rounded-xl p-3">
-                      <p className="text-slate-500 text-xs mb-1">{stat.label}</p>
-                      <p className="font-bold text-slate-800">{stat.value}</p>
-                      {stat.pct !== null && (
-                        <div className="mt-1.5 h-1 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${Math.min(stat.pct, 100)}%`, background: stat.color }} />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Delivery sequence */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <MoveVertical size={16} className="text-slate-400" />
-                    <h3 className="font-semibold text-slate-800">Teslimat Sırası & Yükleme Planı</h3>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setAssignModal('__select__')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium rounded-xl border border-blue-200 transition-colors"
-                    >
-                      <Plus size={12} />
-                      Sevkiyat Ekle
-                    </button>
-                    <button
-                      onClick={() => generateLoadingPlan(selectedVehicleId!)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium rounded-xl border border-emerald-200 transition-colors"
-                    >
-                      <Zap size={12} />
-                      Plan Oluştur
-                    </button>
-                  </div>
-                </div>
-
-                {selectedData.assignments.length === 0 ? (
-                  <div className="py-10 text-center bg-slate-50 rounded-xl">
-                    <Package size={28} className="mx-auto text-slate-300 mb-2" />
-                    <p className="text-slate-500 text-sm">Henüz sevkiyat atanmamış</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {/* Legend */}
-                    <div className="flex items-center gap-3 text-xs text-slate-500 px-2">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-4 h-2 rounded bg-slate-200" />
-                        <span>← Araç Önü (Son Teslim)</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 ml-auto">
-                        <span>(İlk Teslim) Araç Arkası →</span>
-                        <div className="w-4 h-2 rounded bg-blue-300" />
-                      </div>
-                    </div>
-
-                    {/* Delivery sequence visualization */}
-                    <div className="relative">
-                      {/* Truck outline */}
-                      <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-3 overflow-x-auto">
-                        <div className="flex items-center gap-2 min-w-max">
-                          <div className="flex-shrink-0 text-center">
-                            <div className="text-2xl">🚛</div>
-                            <p className="text-xs text-slate-400 mt-1">Önü</p>
-                          </div>
-                          {selectedData.assignments.map((va, idx) => {
-                            const pkgsCount = va.pkgs.length;
-                            const totalW = va.pkgs.reduce((s, p) => s + p.total_weight, 0);
-                            return (
-                              <React.Fragment key={va.id}>
-                                <div className="text-slate-300 text-xs">▶</div>
-                                <div
-                                  className="flex-shrink-0 bg-white border-2 border-slate-300 rounded-xl p-3 text-center hover:border-blue-400 transition-colors"
-                                  style={{ minWidth: '120px' }}
-                                >
-                                  <div className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full mb-2 inline-block">
-                                    #{va.delivery_sequence}
-                                  </div>
-                                  <p className="font-mono font-bold text-slate-800 text-xs">{va.shipment?.shipment_no}</p>
-                                  <p className="text-slate-500 text-xs truncate mt-0.5" style={{ maxWidth: '100px' }}>{va.shipment?.destination_name}</p>
-                                  <p className="text-slate-400 text-xs mt-1">{pkgsCount} paket · {totalW.toFixed(0)} kg</p>
-                                </div>
-                              </React.Fragment>
-                            );
-                          })}
-                          <div className="text-slate-300 text-xs">▶</div>
-                          <div className="flex-shrink-0 text-center">
-                            <div className="text-xl">🏭</div>
-                            <p className="text-xs text-slate-400 mt-1">Depolar</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Loading plan table */}
-                    {selectedData.loadingPlanItems.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4">Yükleme Sırası</p>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="bg-slate-50">
-                                <th className="text-left px-3 py-2 text-xs font-semibold text-slate-500 rounded-l-lg">#</th>
-                                <th className="text-left px-3 py-2 text-xs font-semibold text-slate-500">Paket ID</th>
-                                <th className="text-left px-3 py-2 text-xs font-semibold text-slate-500">Tip</th>
-                                <th className="text-right px-3 py-2 text-xs font-semibold text-slate-500 rounded-r-lg">Ağırlık</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                              {selectedData.loadingPlanItems
-                                .sort((a, b) => a.load_sequence - b.load_sequence)
-                                .map((lp) => {
-                                  const pkg = packages.find((p) => p.id === lp.package_id);
-                                  if (!pkg) return null;
-                                  return (
-                                    <tr key={lp.id} className="hover:bg-slate-50">
-                                      <td className="px-3 py-2">
-                                        <span className="w-6 h-6 bg-blue-100 text-blue-800 text-xs font-bold rounded-full flex items-center justify-center">
-                                          {lp.load_sequence}
-                                        </span>
-                                      </td>
-                                      <td className="px-3 py-2 font-mono text-xs text-slate-600">{pkg.id.slice(-8)}</td>
-                                      <td className="px-3 py-2">
-                                        <span className="flex items-center gap-1.5 text-xs text-slate-700">
-                                          <span>{packageTypeIcon(pkg.package_type)}</span>
-                                          {packageTypeLabel(pkg.package_type)}
-                                          {pkg.stretch_wrap && <span className="text-blue-500 text-xs">(Streç)</span>}
-                                        </span>
-                                      </td>
-                                      <td className="px-3 py-2 text-right text-slate-700 text-xs font-medium">{pkg.total_weight.toFixed(1)} kg</td>
-                                    </tr>
-                                  );
-                                })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Assign modal */}
-      {assignModal && (
-        <VehicleAssignModal
-          vehicleId={selectedVehicleId!}
-          unassignedShipments={assignModal === '__select__' ? unassignedShipments : unassignedShipments}
-          shipmentId={assignModal !== '__select__' ? assignModal : undefined}
-          onAssign={(shipmentId) => {
-            assignVehicle(shipmentId, selectedVehicleId!);
-            setAssignModal(null);
-          }}
-          onClose={() => setAssignModal(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-function VehicleAssignModal({
-  vehicleId, unassignedShipments, shipmentId, onAssign, onClose
-}: {
-  vehicleId: string;
-  unassignedShipments: any[];
-  shipmentId?: string;
-  onAssign: (shipmentId: string) => void;
-  onClose: () => void;
-}) {
-  const { shipments, packages } = useAppStore();
-  const allShipments = shipments.filter(
-    (s) => s.status !== 'SHIPPED' && s.status !== 'PLANNED'
-  );
-  const displayList = shipmentId ? allShipments.filter((s) => s.id === shipmentId) : unassignedShipments;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 z-10 max-h-[80vh] flex flex-col">
-        <h3 className="font-bold text-slate-800 mb-1">Sevkiyat Ata</h3>
-        <p className="text-slate-500 text-sm mb-4">Araca eklenecek sevkiyatı seçin</p>
-
-        <div className="overflow-y-auto flex-1 space-y-2">
-          {displayList.length === 0 ? (
-            <p className="text-center text-slate-400 py-8 text-sm">Atanabilecek sevkiyat yok</p>
-          ) : (
-            displayList.map((s: any) => {
-              const pkgs = packages.filter((p) => p.shipment_id === s.id);
-              const totalW = pkgs.reduce((sum: number, p: any) => sum + p.total_weight, 0);
-              return (
+            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+              {shipments.map(s => (
                 <button
                   key={s.id}
-                  onClick={() => onAssign(s.id)}
-                  className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all"
+                  onClick={() => handleSelectShipment(s.id)}
+                  className={`w-full text-left p-3.5 rounded-xl border transition-all ${
+                    selectedShipmentId === s.id
+                      ? 'border-blue-500 bg-blue-50 shadow-sm'
+                      : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50'
+                  }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono font-bold text-slate-800 text-sm">{s.shipment_no}</span>
-                    <span className="text-xs text-slate-500">{pkgs.length} paket</span>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-slate-800 text-sm truncate">{s.sevkiyat_no}</span>
+                        {getStatusBadge(s.status)}
+                      </div>
+                      <p className="text-xs text-slate-500 truncate">{s.cari_ad}</p>
+                      <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <MapPin size={10} />{s.cari_sehir || s.nakliye_yeri}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Box size={10} />{s.toplam_koli} koli
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Weight size={10} />{formatWeight(s.toplam_agirlik_kg)}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className={`flex-shrink-0 mt-1 transition-colors ${selectedShipmentId === s.id ? 'text-blue-500' : 'text-slate-300'}`} />
                   </div>
-                  <p className="text-slate-600 text-xs truncate">{s.destination_name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <MapPin size={10} className="text-slate-400" />
-                    <span className="text-slate-400 text-xs">{s.city}</span>
-                    <Weight size={10} className="text-slate-400 ml-1" />
-                    <span className="text-slate-400 text-xs">{totalW.toFixed(1)} kg</span>
-                  </div>
+
+                  {/* Araç atama durumu */}
+                  {s.vehicle_assignments && s.vehicle_assignments.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1.5 text-xs text-slate-500">
+                      <Truck size={11} className="text-green-500" />
+                      <span className="text-green-600 font-medium">{s.vehicle_assignments[0].plate}</span>
+                      <span>·</span>
+                      <User size={11} />
+                      <span>{s.vehicle_assignments[0].driver_name}</span>
+                    </div>
+                  )}
                 </button>
-              );
-            })
+              ))}
+            </div>
+          )}
+
+          {/* Araç Özeti */}
+          {vehicles.length > 0 && (
+            <div className="mt-4">
+              <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-2">Araçlar ({vehicles.length})</h2>
+              <div className="space-y-1.5">
+                {vehicles.map(v => (
+                  <div key={v.id} className="flex items-center justify-between px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs">
+                    <div className="flex items-center gap-2">
+                      <Truck size={13} className={v.status === 'available' ? 'text-green-500' : 'text-orange-400'} />
+                      <span className="font-medium text-slate-700">{v.plaka}</span>
+                      <span className="text-slate-400">{v.sofor_adi}</span>
+                    </div>
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                      v.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      {v.status === 'available' ? 'Müsait' : 'Meşgul'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 
-        <button onClick={onClose} className="mt-4 w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm hover:bg-slate-50 transition-colors">
-          İptal
-        </button>
+        {/* Sağ: 3D Görünüm */}
+        <div className="xl:col-span-2 space-y-4">
+          {!selectedShipmentId ? (
+            <div className="flex flex-col items-center justify-center h-96 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+              <Truck size={48} className="text-slate-300 mb-3" />
+              <p className="text-slate-400 font-medium">Sevkiyat seçin</p>
+              <p className="text-slate-300 text-sm mt-1">3D araç yerleşim görünümü için sol listeden bir sevkiyat seçin</p>
+            </div>
+          ) : placementLoading ? (
+            <div className="flex flex-col items-center justify-center h-96 bg-slate-900 rounded-2xl">
+              <RefreshCw size={32} className="text-blue-400 animate-spin mb-3" />
+              <p className="text-slate-400 text-sm">3D yerleşim hesaplanıyor...</p>
+            </div>
+          ) : placementData?.assignments?.length > 0 ? (
+            <div className="space-y-4">
+              {/* Sevkiyat Özeti */}
+              {selectedShipment && (
+                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-bold text-slate-800">{selectedShipment.sevkiyat_no}</h3>
+                      <p className="text-sm text-slate-500">{selectedShipment.cari_ad} · {selectedShipment.nakliye_yeri}</p>
+                    </div>
+                    {getStatusBadge(selectedShipment.status)}
+                  </div>
+                  <div className="grid grid-cols-4 gap-3 mt-3">
+                    {[
+                      { label: 'Koli', value: selectedShipment.toplam_koli },
+                      { label: 'Palet', value: selectedShipment.toplam_palet },
+                      { label: 'Ağırlık', value: formatWeight(selectedShipment.toplam_agirlik_kg) },
+                      { label: 'Hacim', value: formatVolume(selectedShipment.toplam_hacim_m3) },
+                    ].map(item => (
+                      <div key={item.label} className="text-center bg-slate-50 rounded-lg py-2">
+                        <p className="text-xs text-slate-400">{item.label}</p>
+                        <p className="font-semibold text-slate-700 text-sm">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 3D Görünüm - Her araç için */}
+              {placementData.assignments.map((assignment: any) => {
+                const blocks = build3DBlocks(assignment);
+                const vehicleDims = {
+                  length: assignment.vehicle_length_mm || 4200,
+                  width: assignment.vehicle_width_mm || 2100,
+                  height: assignment.vehicle_height_mm || 2200,
+                };
+                return (
+                  <div key={assignment.vehicle_assignment_id}>
+                    <Vehicle3DView
+                      blocks={blocks}
+                      vehicle={vehicleDims}
+                      utilization={assignment.utilization || 0}
+                      plate={assignment.plate || ''}
+                      driverName={assignment.driver_name || ''}
+                    />
+
+                    {/* Araç detay istatistikleri */}
+                    <div className="grid grid-cols-3 gap-3 mt-3">
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 text-center">
+                        <p className="text-xs text-slate-400 mb-1">Hacim Kullanımı</p>
+                        <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-1">
+                          <div
+                            className="absolute left-0 top-0 h-full rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(100, assignment.utilization || 0)}%`,
+                              background: (assignment.utilization || 0) > 90 ? '#f59e0b' : '#10b981'
+                            }}
+                          />
+                        </div>
+                        <p className="font-bold text-slate-700">%{(assignment.utilization || 0).toFixed(1)}</p>
+                      </div>
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 text-center">
+                        <p className="text-xs text-slate-400 mb-1">Toplam Ağırlık</p>
+                        <p className="font-bold text-slate-700">{formatWeight(assignment.total_weight_kg || 0)}</p>
+                        <p className="text-xs text-slate-400">/ {formatWeight(assignment.max_weight_kg || 3500)}</p>
+                      </div>
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 text-center">
+                        <p className="text-xs text-slate-400 mb-1">Blok Sayısı</p>
+                        <p className="font-bold text-slate-700">{blocks.length}</p>
+                        <p className="text-xs text-slate-400">yerleşim bloğu</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-96 bg-slate-50 rounded-2xl border border-slate-200">
+              <Box size={40} className="text-slate-300 mb-3" />
+              <p className="text-slate-500 font-medium">3D yerleşim verisi yok</p>
+              <p className="text-slate-400 text-sm mt-1">Bu sevkiyata araç atanmamış veya yükleme sırası oluşturulmamış</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

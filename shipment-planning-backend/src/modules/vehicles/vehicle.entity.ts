@@ -8,9 +8,8 @@ import {
 
 export enum VehicleStatus {
   AVAILABLE = 'available',
-  ON_ROUTE = 'on_route',
+  IN_OPERATION = 'in_operation',
   MAINTENANCE = 'maintenance',
-  INACTIVE = 'inactive',
 }
 
 @Entity('vehicles')
@@ -18,25 +17,35 @@ export class Vehicle {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ type: 'nvarchar', length: 50 })
+  arac_tipi: string;
+
   @Column({ type: 'nvarchar', length: 20, unique: true })
-  plateNumber: string;
+  plaka: string;
 
   @Column({ type: 'nvarchar', length: 100 })
-  driverName: string;
+  sofor_adi: string;
 
   @Column({ type: 'nvarchar', length: 20, nullable: true })
-  driverPhone: string;
+  sofor_telefon: string;
 
-  @Column({ type: 'nvarchar', length: 50 })
-  vehicleType: string;
+  // İç ölçüler (mm)
+  @Column({ type: 'decimal', precision: 8, scale: 0, nullable: true })
+  ic_uzunluk_mm: number;
 
-  @Column({ type: 'decimal', precision: 8, scale: 2 })
-  capacityKg: number;
+  @Column({ type: 'decimal', precision: 8, scale: 0, nullable: true })
+  ic_genislik_mm: number;
+
+  @Column({ type: 'decimal', precision: 8, scale: 0, nullable: true })
+  ic_yukseklik_mm: number;
+
+  // Max ağırlık (kg)
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  max_agirlik_kg: number;
 
   @Column({ type: 'int', nullable: true })
-  palletCapacity: number;
+  palet_kapasitesi: number;
 
-  // MSSQL'de enum yok — nvarchar kullanıyoruz
   @Column({
     type: 'nvarchar',
     length: 20,

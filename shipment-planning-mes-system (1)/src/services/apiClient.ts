@@ -37,7 +37,15 @@ apiClient.interceptors.response.use(
 
 export const handleApiError = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
-    return error.response?.data?.message || error.message || 'Bir hata oluştu';
+    const data = error.response?.data;
+    if (data?.message) {
+      if (typeof data.message === 'string') {
+        return data.message;
+      } else if (typeof data.message === 'object' && data.message.message) {
+        return data.message.message;
+      }
+    }
+    return error.message || 'Bir hata oluştu';
   }
   return 'Beklenmeyen bir hata oluştu';
 };

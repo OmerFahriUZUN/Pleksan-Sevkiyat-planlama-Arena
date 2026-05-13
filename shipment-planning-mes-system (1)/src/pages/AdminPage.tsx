@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -6,7 +6,6 @@ import {
   Edit3,
   Trash2,
   Eye,
-  EyeOff,
   Save,
   X,
   Loader2,
@@ -18,12 +17,19 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { usersAPI, handleApiError } from '../services';
-import type { UserResponse, UpdateUserRequest } from '../services';
+import type { UpdateUserRequest } from '../services';
+import type { AuthUser } from '../types';
+
+interface UserResponse extends AuthUser {
+  createdAt: string;
+  updatedAt: string;
+}
 
 const ROLE_LABELS = {
   admin: 'Yönetici',
   planner: 'Planlayıcı',
   warehouse: 'Depo Operatörü',
+  operator: 'Operatör',
   viewer: 'Görüntüleyici',
 };
 
@@ -31,6 +37,7 @@ const ROLE_COLORS = {
   admin: 'bg-red-100 text-red-800 border-red-200',
   planner: 'bg-blue-100 text-blue-800 border-blue-200',
   warehouse: 'bg-green-100 text-green-800 border-green-200',
+  operator: 'bg-orange-100 text-orange-800 border-orange-200',
   viewer: 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
@@ -38,6 +45,7 @@ const ROLE_ICONS = {
   admin: Crown,
   planner: Settings,
   warehouse: UserCheck,
+  operator: UserCheck,
   viewer: Eye,
 };
 
@@ -49,7 +57,7 @@ export function AdminPage() {
   const [error, setError] = useState('');
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<UpdateUserRequest>({});
-  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  const [] = useState<Record<string, boolean>>({});
   const [updating, setUpdating] = useState<string | null>(null);
 
   // Admin kontrolü
@@ -121,12 +129,6 @@ export function AdminPage() {
     }
   };
 
-  const togglePasswordVisibility = (userId: string) => {
-    setShowPasswords(prev => ({
-      ...prev,
-      [userId]: !prev[userId]
-    }));
-  };
 
   if (!currentUser || currentUser.role !== 'admin') {
     return null;
@@ -173,6 +175,17 @@ export function AdminPage() {
                 {users.filter(u => u.role === 'planner').length}
               </p>
               <p className="text-sm text-gray-600">Planlayıcı</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center gap-3">
+            <UserCheck className="w-8 h-8 text-amber-600" />
+            <div>
+              <p className="text-2xl font-bold text-gray-900">
+                {users.filter(u => u.role === 'operator').length}
+              </p>
+              <p className="text-sm text-gray-600">Operatör</p>
             </div>
           </div>
         </div>
@@ -261,6 +274,7 @@ export function AdminPage() {
                           >
                             <option value="viewer">Görüntüleyici</option>
                             <option value="warehouse">Depo Operatörü</option>
+                            <option value="operator">Operatör</option>
                             <option value="planner">Planlayıcı</option>
                             <option value="admin">Yönetici</option>
                           </select>
