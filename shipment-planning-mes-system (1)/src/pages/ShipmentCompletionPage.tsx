@@ -61,6 +61,10 @@ export function ShipmentCompletionPage() {
   const completeShipment = async (id: string) => {
     try {
       await shipmentPlansAPI.transitionStatus(id, 'shipped');
+      // Auto generate irsaliye
+      try {
+        await shipmentPlansAPI.generateIrsaliye(id);
+      } catch (e) {}
       await loadData();
     } catch (err) {
       setError(handleApiError(err));

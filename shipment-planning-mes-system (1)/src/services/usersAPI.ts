@@ -18,7 +18,16 @@ export const usersAPI = {
   },
 
   updateUser: async (id: string, data: UpdateUserRequest): Promise<UserResponse> => {
-    const response = await apiClient.patch<UserResponse>(`/users/${id}`, data);
+    // Boş şifre göndermeyin
+    const cleanData: UpdateUserRequest = {};
+    if (data.role) {
+      cleanData.role = data.role;
+    }
+    if (data.password && data.password.trim().length > 0) {
+      cleanData.password = data.password;
+    }
+    
+    const response = await apiClient.patch<UserResponse>(`/users/${id}`, cleanData);
     return response.data;
   },
 

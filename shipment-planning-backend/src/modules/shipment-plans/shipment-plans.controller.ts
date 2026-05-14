@@ -193,6 +193,70 @@ export class ShipmentPlansController {
     return this.service.updatePriority(id, priority);
   }
 
+  // ─── 3D Yükleme Yönetimi ────────────────────────────────────────────────
+  @Post(':id/3d-loading-start')
+  @Roles('admin', 'planner', 'warehouse')
+  @ApiOperation({ summary: '3D yüklemeyi başlat' })
+  async start3DLoading(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.start3DLoading(id);
+  }
+
+  @Post(':id/3d-loading-confirm')
+  @Roles('admin', 'planner', 'warehouse')
+  @ApiOperation({ summary: '3D yüklemede bir blok/ürünü onayla' })
+  async confirm3DLoadingItem(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('product_code') productCode: string,
+    @Body('block_id') blockId: string,
+    @Body('confirmed_by') confirmedBy: string,
+  ) {
+    return this.service.confirm3DLoadingItem(id, productCode, blockId, confirmedBy || 'operator');
+  }
+
+  @Post(':id/3d-loading-complete')
+  @Roles('admin', 'planner', 'warehouse')
+  @ApiOperation({ summary: '3D yüklemeyi tamamla' })
+  async complete3DLoading(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.complete3DLoading(id);
+  }
+
+  // ─── İrsaliye ────────────────────────────────────────────────────────────
+  @Post(':id/generate-irsaliye')
+  @Roles('admin', 'planner')
+  @ApiOperation({ summary: 'İrsaliye oluştur' })
+  async generateIrsaliye(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.generateIrsaliye(id);
+  }
+
+  // ─── Araç Planlama için Ek Sorgular ─────────────────────────────────────
+  @Get('active-for-planning')
+  @Roles('admin', 'planner')
+  @ApiOperation({ summary: 'Planlama için aktif sevkiyatlar' })
+  async getActiveForPlanning() {
+    return this.service.getActiveShipmentsForPlanning();
+  }
+
+  @Get('planned-shipments')
+  @Roles('admin', 'planner', 'warehouse')
+  @ApiOperation({ summary: 'Planlanmış sevkiyatlar (devam eden operasyonlar)' })
+  async getPlannedShipments() {
+    return this.service.getPlannedShipments();
+  }
+
+  // ─── Araç Atama (Planlama) ──────────────────────────────────────────────
+  @Post(':id/assign-shipment-to-vehicle')
+  @Roles('admin', 'planner')
+  @ApiOperation({ summary: 'Sevkiyatı araca ata (planlama sayfası)' })
+  async assignShipmentToVehicle(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('vehicle_id') vehicleId: string,
+    @Body('plate') plate: string,
+    @Body('driver_name') driverName: string,
+    @Body('load_percentage') loadPercentage: number,
+  ) {
+    return this.service.assignShipmentToVehicle(id, vehicleId, plate, driverName, loadPercentage || 100);
+  }
+
   // ─── Silme ────────────────────────────────────────────────────────────────
   @Delete(':id')
   @Roles('admin')

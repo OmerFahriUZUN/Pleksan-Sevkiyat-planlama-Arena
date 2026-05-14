@@ -423,10 +423,278 @@ async function seed() {
     console.log('✓ ERP havuzuna örnek sevkiyat güncellendi');
   } else {
     sampleShipment = shipmentRepository.create(
-  sampleShipmentData as DeepPartial<ShipmentPlan>
-);
+      sampleShipmentData as DeepPartial<ShipmentPlan>
+    );
     await shipmentRepository.save(sampleShipment);
     console.log('✓ ERP havuzuna örnek sevkiyat oluşturuldu');
+  }
+
+  const additionalErpPoolShipments = [
+    {
+      header: {
+        is_yeri: 'Merkez Depo',
+        kart_bilgisi: 'YURTICI',
+        sevkiyat_no: 'ERP-1002',
+        siparis_no: 'SIP-1525',
+        cari_kod: 'C54321',
+        cari_ad: 'Pleksan Bayi B',
+        nakliye_yeri: 'İstanbul Anadolu',
+        islem_tarihi: new Date().toISOString(),
+        termin_tarihi: new Date(Date.now() + 4 * 24 * 60 * 60000).toISOString(),
+        sevkiyat_tarihi: new Date(Date.now() + 5 * 24 * 60 * 60000).toISOString(),
+        cari_ulke: 'Türkiye',
+        cari_sehir: 'İstanbul',
+        cari_ilce: 'Kadıköy',
+      },
+      details: [
+        {
+          stok_kodu: 'ERP-PRD-01',
+          stok_adi: 'Beyaz Ev Aletleri Seti',
+          sevk_emir_miktari: 10,
+          sevk_emri_kalan: 10,
+          depo_kodu: 'DEPO-01',
+          sevk_tarihi: new Date().toISOString(),
+          koli_sayisi: 5,
+          palet_sayisi: 1,
+          hacim_m3: 0.5,
+          agirlik: 280,
+          koli_uzunluk_m: 1.1,
+          koli_genislik_m: 0.8,
+          koli_yukseklik_m: 0.6,
+        },
+        {
+          stok_kodu: 'ERP-PRD-02',
+          stok_adi: 'Mutfak Aksesuarı Paketi',
+          sevk_emir_miktari: 12,
+          sevk_emri_kalan: 12,
+          depo_kodu: 'DEPO-01',
+          sevk_tarihi: new Date().toISOString(),
+          koli_sayisi: 6,
+          palet_sayisi: 1,
+          hacim_m3: 0.36,
+          agirlik: 180,
+          koli_uzunluk_m: 1.0,
+          koli_genislik_m: 0.75,
+          koli_yukseklik_m: 0.48,
+        },
+        {
+          stok_kodu: 'ERP-PRD-03',
+          stok_adi: 'Ofis Malzemeleri Seti',
+          sevk_emir_miktari: 8,
+          sevk_emri_kalan: 8,
+          depo_kodu: 'DEPO-01',
+          sevk_tarihi: new Date().toISOString(),
+          koli_sayisi: 4,
+          palet_sayisi: 0,
+          hacim_m3: 0.24,
+          agirlik: 96,
+          koli_uzunluk_m: 0.9,
+          koli_genislik_m: 0.6,
+          koli_yukseklik_m: 0.45,
+        },
+      ],
+    },
+    {
+      header: {
+        is_yeri: 'Bölge Depo',
+        kart_bilgisi: 'YURTICI',
+        sevkiyat_no: 'ERP-1003',
+        siparis_no: 'SIP-1526',
+        cari_kod: 'C67890',
+        cari_ad: 'Pleksan Ticaret C',
+        nakliye_yeri: 'Ankara Depo',
+        islem_tarihi: new Date().toISOString(),
+        termin_tarihi: new Date(Date.now() + 6 * 24 * 60 * 60000).toISOString(),
+        sevkiyat_tarihi: new Date(Date.now() + 7 * 24 * 60 * 60000).toISOString(),
+        cari_ulke: 'Türkiye',
+        cari_sehir: 'Ankara',
+        cari_ilce: 'Çankaya',
+      },
+      details: [
+        {
+          stok_kodu: 'ERP-PRD-04',
+          stok_adi: 'Toner Kartuşu Seti',
+          sevk_emir_miktari: 20,
+          sevk_emri_kalan: 20,
+          depo_kodu: 'DEPO-02',
+          sevk_tarihi: new Date().toISOString(),
+          koli_sayisi: 10,
+          palet_sayisi: 1,
+          hacim_m3: 0.6,
+          agirlik: 160,
+          koli_uzunluk_m: 1.2,
+          koli_genislik_m: 0.8,
+          koli_yukseklik_m: 0.5,
+        },
+        {
+          stok_kodu: 'ERP-PRD-05',
+          stok_adi: 'Endüstriyel Temizlik Kimyasalı',
+          sevk_emir_miktari: 15,
+          sevk_emri_kalan: 15,
+          depo_kodu: 'DEPO-02',
+          sevk_tarihi: new Date().toISOString(),
+          koli_sayisi: 5,
+          palet_sayisi: 0,
+          hacim_m3: 0.35,
+          agirlik: 140,
+          koli_uzunluk_m: 0.85,
+          koli_genislik_m: 0.6,
+          koli_yukseklik_m: 0.7,
+        },
+        {
+          stok_kodu: 'ERP-PRD-06',
+          stok_adi: 'Ağır Sanayi Yedek Parça',
+          sevk_emir_miktari: 6,
+          sevk_emri_kalan: 6,
+          depo_kodu: 'DEPO-02',
+          sevk_tarihi: new Date().toISOString(),
+          koli_sayisi: 3,
+          palet_sayisi: 1,
+          hacim_m3: 0.72,
+          agirlik: 360,
+          koli_uzunluk_m: 1.5,
+          koli_genislik_m: 1.0,
+          koli_yukseklik_m: 0.48,
+        },
+        {
+          stok_kodu: 'ERP-PRD-07',
+          stok_adi: 'Elektrik Panosu Modülü',
+          sevk_emir_miktari: 4,
+          sevk_emri_kalan: 4,
+          depo_kodu: 'DEPO-02',
+          sevk_tarihi: new Date().toISOString(),
+          koli_sayisi: 2,
+          palet_sayisi: 0,
+          hacim_m3: 0.3,
+          agirlik: 180,
+          koli_uzunluk_m: 1.0,
+          koli_genislik_m: 0.75,
+          koli_yukseklik_m: 0.4,
+        },
+      ],
+    },
+    {
+      header: {
+        is_yeri: 'Lojistik Merkezi',
+        kart_bilgisi: 'YURTDISI',
+        sevkiyat_no: 'ERP-1004',
+        siparis_no: 'SIP-1527',
+        cari_kod: 'C24680',
+        cari_ad: 'Pleksan Dış Ticaret',
+        nakliye_yeri: 'İzmir Liman',
+        islem_tarihi: new Date().toISOString(),
+        termin_tarihi: new Date(Date.now() + 8 * 24 * 60 * 60000).toISOString(),
+        sevkiyat_tarihi: new Date(Date.now() + 9 * 24 * 60 * 60000).toISOString(),
+        cari_ulke: 'Yunanistan',
+        cari_sehir: 'İzmir',
+        cari_ilce: 'Gaziemir',
+      },
+      details: [
+        {
+          stok_kodu: 'ERP-PRD-08',
+          stok_adi: 'Dış Mekan Aydınlatma Armatürü',
+          sevk_emir_miktari: 14,
+          sevk_emri_kalan: 14,
+          depo_kodu: 'DEPO-03',
+          sevk_tarihi: new Date().toISOString(),
+          koli_sayisi: 7,
+          palet_sayisi: 1,
+          hacim_m3: 0.7,
+          agirlik: 210,
+          koli_uzunluk_m: 1.4,
+          koli_genislik_m: 0.75,
+          koli_yukseklik_m: 0.6,
+        },
+        {
+          stok_kodu: 'ERP-PRD-09',
+          stok_adi: 'Güvenlik Kamera Sistemi',
+          sevk_emir_miktari: 5,
+          sevk_emri_kalan: 5,
+          depo_kodu: 'DEPO-03',
+          sevk_tarihi: new Date().toISOString(),
+          koli_sayisi: 3,
+          palet_sayisi: 0,
+          hacim_m3: 0.27,
+          agirlik: 135,
+          koli_uzunluk_m: 1.1,
+          koli_genislik_m: 0.8,
+          koli_yukseklik_m: 0.35,
+        },
+        {
+          stok_kodu: 'ERP-PRD-10',
+          stok_adi: 'Endüstriyel Fan Motoru',
+          sevk_emir_miktari: 7,
+          sevk_emri_kalan: 7,
+          depo_kodu: 'DEPO-03',
+          sevk_tarihi: new Date().toISOString(),
+          koli_sayisi: 4,
+          palet_sayisi: 1,
+          hacim_m3: 0.5,
+          agirlik: 280,
+          koli_uzunluk_m: 1.2,
+          koli_genislik_m: 0.9,
+          koli_yukseklik_m: 0.45,
+        },
+      ],
+    },
+  ];
+
+  for (const entry of additionalErpPoolShipments) {
+    const existingShipment = await shipmentRepository.findOne({ where: { sevkiyat_no: entry.header.sevkiyat_no } });
+    const products = entry.details.map(buildProduct);
+    const totals = {
+      toplam_koli: products.reduce((sum, p) => sum + p.koli_sayisi, 0),
+      toplam_palet: products.reduce((sum, p) => sum + p.palet_sayisi, 0),
+      toplam_agirlik_kg: products.reduce((sum, p) => sum + p.agirlik, 0),
+      toplam_hacim_m3: products.reduce((sum, p) => sum + p.hacim_m3, 0),
+    };
+
+    const shipmentData = {
+      sevkiyat_no: entry.header.sevkiyat_no,
+      siparis_no: entry.header.siparis_no,
+      kart_bilgisi: entry.header.kart_bilgisi,
+      cari_kod: entry.header.cari_kod,
+      cari_ad: entry.header.cari_ad,
+      nakliye_yeri: entry.header.nakliye_yeri,
+      cari_ulke: entry.header.cari_ulke,
+      cari_sehir: entry.header.cari_sehir,
+      cari_ilce: entry.header.cari_ilce,
+      termin_tarihi: new Date(entry.header.termin_tarihi),
+      sevkiyat_tarihi: new Date(entry.header.sevkiyat_tarihi),
+      islem_tarihi: new Date(entry.header.islem_tarihi),
+      teslimat_adresi: `${entry.header.nakliye_yeri || ''}, ${entry.header.cari_ilce || ''}/${entry.header.cari_sehir || ''}`,
+      erp_raw_header: entry.header,
+      erp_raw_details: entry.details,
+      erp_data_hash: hashData({ header: entry.header, details: entry.details }),
+      urun_listesi: products,
+      toplam_koli: totals.toplam_koli,
+      toplam_palet: totals.toplam_palet,
+      toplam_agirlik_kg: totals.toplam_agirlik_kg,
+      toplam_hacim_m3: totals.toplam_hacim_m3,
+      preparation_checks: products.map((product) => ({
+        stok_kodu: product.stok_kodu,
+        stok_adi: product.stok_adi,
+        is_stock_sufficient: true,
+        is_product_ready: true,
+        is_quality_approved: true,
+        is_warehouse_suitable: true,
+        notes: '',
+      })),
+      status: ShipmentStatus.ERP_IMPORTED,
+      priority: ShipmentPriority.NORMAL,
+      is_partial_shipment: false,
+      partial_shipment_percentage: 0,
+    };
+
+    if (existingShipment) {
+      Object.assign(existingShipment, shipmentData);
+      await shipmentRepository.save(existingShipment);
+      console.log(`✓ ERP havuzuna ek sevkiyat güncellendi: ${entry.header.sevkiyat_no}`);
+    } else {
+      const createdShipment = shipmentRepository.create(shipmentData as DeepPartial<ShipmentPlan>);
+      await shipmentRepository.save(createdShipment);
+      console.log(`✓ ERP havuzuna ek sevkiyat oluşturuldu: ${entry.header.sevkiyat_no}`);
+    }
   }
 
   const personnelList = await personnelRepository.find();

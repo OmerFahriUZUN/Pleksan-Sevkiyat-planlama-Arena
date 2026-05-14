@@ -108,6 +108,44 @@ export const shipmentPlansAPI = {
     return response.data;
   },
 
+  // ─── 3D Yükleme Yönetimi ────────────────────────────────────────────
+  start3DLoading: async (id: string): Promise<ShipmentPlan> => {
+    const response = await apiClient.post<ShipmentPlan>(`/shipment-plans/${id}/3d-loading-start`);
+    return response.data;
+  },
+
+  confirm3DLoadingItem: async (id: string, productCode: string, blockId: string, confirmedBy: string): Promise<ShipmentPlan> => {
+    const response = await apiClient.post<ShipmentPlan>(`/shipment-plans/${id}/3d-loading-confirm`, { product_code: productCode, block_id: blockId, confirmed_by: confirmedBy });
+    return response.data;
+  },
+
+  complete3DLoading: async (id: string): Promise<ShipmentPlan> => {
+    const response = await apiClient.post<ShipmentPlan>(`/shipment-plans/${id}/3d-loading-complete`);
+    return response.data;
+  },
+
+  // ─── İrsaliye ────────────────────────────────────────────────────────
+  generateIrsaliye: async (id: string): Promise<ShipmentPlan> => {
+    const response = await apiClient.post<ShipmentPlan>(`/shipment-plans/${id}/generate-irsaliye`);
+    return response.data;
+  },
+
+  // ─── Planlama İçin Yardımcı Sorgular ─────────────────────────────────
+  getActiveForPlanning: async (): Promise<ShipmentPlan[]> => {
+    const response = await apiClient.get<ShipmentPlan[]>('/shipment-plans/active-for-planning');
+    return response.data;
+  },
+
+  getPlannedShipments: async (): Promise<ShipmentPlan[]> => {
+    const response = await apiClient.get<ShipmentPlan[]>('/shipment-plans/planned-shipments');
+    return response.data;
+  },
+
+  assignShipmentToVehicle: async (id: string, vehicleId: string, plate: string, driverName: string, loadPercentage: number): Promise<ShipmentPlan> => {
+    const response = await apiClient.post<ShipmentPlan>(`/shipment-plans/${id}/assign-shipment-to-vehicle`, { vehicle_id: vehicleId, plate, driver_name: driverName, load_percentage: loadPercentage });
+    return response.data;
+  },
+
   // ─── Barkod Tarama ──────────────────────────────────────────────────
   scanProduct: async (id: string, stokKodu: string, miktar: number): Promise<ScanResult> => {
     const response = await apiClient.post<ScanResult>(`/shipment-plans/${id}/scan`, { stok_kodu: stokKodu, miktar });

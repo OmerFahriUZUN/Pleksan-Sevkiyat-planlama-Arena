@@ -9,6 +9,7 @@ import { PreparationControlPage } from './pages/PreparationControlPage';
 import { OperationPlanningPage } from './pages/OperationPlanningPage';
 import { ShipmentCompletionPage } from './pages/ShipmentCompletionPage';
 import { VehiclePlanningPage } from './pages/VehiclePlanningPage';
+import { VehicleListPage } from './pages/VehicleListPage';
 import { Loading3DPage } from './pages/Loading3DPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { AdminPage } from './pages/AdminPage';
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/preparation" element={<ProtectedRoute><PreparationControlPage /></ProtectedRoute>} />
         <Route path="/planning" element={<ProtectedRoute><OperationPlanningPage /></ProtectedRoute>} />
         <Route path="/vehicle-planning" element={<ProtectedRoute><VehiclePlanningPage /></ProtectedRoute>} />
+        <Route path="/vehicle-list" element={<ProtectedRoute><VehicleListPage /></ProtectedRoute>} />
         <Route path="/loading-3d" element={<ProtectedRoute><Loading3DPage /></ProtectedRoute>} />
         <Route path="/execution" element={<ProtectedRoute><ShipmentCompletionPage /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />

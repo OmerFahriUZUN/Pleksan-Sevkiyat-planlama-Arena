@@ -125,6 +125,35 @@ export interface PreparationCheck {
   notes: string;
 }
 
+export interface LoadingConfirmedItem {
+  id: string;
+  product_code: string;
+  block_id: string;
+  confirmed_at: string;
+  confirmed_by: string;
+}
+
+export interface IrsaliyeUrun {
+  stok_kodu: string;
+  stok_adi: string;
+  miktar: number;
+  birim: string;
+}
+
+export interface Irsaliye {
+  irsaliye_no: string;
+  sevkiyat_no: string;
+  tarih: string;
+  cari_ad: string;
+  cari_kod: string;
+  plaka: string;
+  sofor_adi: string;
+  urunler: IrsaliyeUrun[];
+  toplam_koli: number;
+  toplam_palet: number;
+  toplam_agirlik_kg: number;
+}
+
 export interface ShipmentPlan {
   id: string;
   sevkiyat_no: string;
@@ -152,6 +181,8 @@ export interface ShipmentPlan {
   vehicle_assignments: VehicleAssignment[];
   loading_sequences: LoadingSequence[];
   preparation_checks: PreparationCheck[];
+  loading_confirmed_items: LoadingConfirmedItem[];
+  irsaliye: Irsaliye | null;
   erp_data_hash: string;
   revision_notes: string;
   teslimat_adresi: string;

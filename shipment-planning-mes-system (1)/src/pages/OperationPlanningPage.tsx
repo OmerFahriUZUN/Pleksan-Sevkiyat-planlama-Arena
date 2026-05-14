@@ -11,8 +11,8 @@ function getPeriodRange(date: Date, period: 'daily' | 'weekly' | 'monthly') {
   let to = new Date(base);
 
   if (period === 'daily') {
-    from.setHours(7, 0, 0, 0);
-    to.setHours(19, 0, 0, 0);
+    from.setHours(8, 0, 0, 0);
+    to.setHours(18, 30, 0, 0);
   } else if (period === 'weekly') {
     const day = base.getDay();
     const mondayOffset = day === 0 ? -6 : 1 - day;
@@ -46,8 +46,12 @@ function getPeriodLabel(date: Date, period: 'daily' | 'weekly' | 'monthly') {
 function getTimelineTicks(period: 'daily' | 'weekly' | 'monthly', from: Date, to: Date) {
   const ticks: string[] = [];
   if (period === 'daily') {
-    for (let hour = 7; hour <= 19; hour += 1) {
-      ticks.push(`${hour}:00`);
+    const current = new Date(from);
+    while (current <= to) {
+      const hours = current.getHours().toString().padStart(2, '0');
+      const minutes = current.getMinutes().toString().padStart(2, '0');
+      ticks.push(`${hours}:${minutes}`);
+      current.setMinutes(current.getMinutes() + 30);
     }
   } else if (period === 'weekly') {
     const current = new Date(from);
@@ -63,15 +67,6 @@ function getTimelineTicks(period: 'daily' | 'weekly' | 'monthly', from: Date, to
     }
   }
   return ticks;
-}
-
-function getBarStyle(start: string, end: string, from: Date, to: Date) {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  const total = to.getTime() - from.getTime();
-  const left = Math.max(0, (startDate.getTime() - from.getTime()) / total * 100);
-  const width = Math.min(100 - left, Math.max(1, (endDate.getTime() - startDate.getTime()) / total * 100));
-  return { left: `${left}%`, width: `${width}%` };
 }
 
 function isOperationVisible(op: { planned_start: string; planned_end: string }, from: Date, to: Date) {
@@ -430,8 +425,12 @@ function ShipmentGantt({ shipments, period, from, to }: { shipments: ShipmentPla
         <div className="min-w-[700px] px-4 py-2">
           <div className="flex border-b border-slate-100 pb-2">
             <div className="w-32 flex-shrink-0" />
-            <div className="flex-1 flex flex-wrap gap-2">
-              {ticks.map((tick) => (<span key={tick} className="text-slate-400 text-xs whitespace-nowrap">{tick}</span>))}
+            <div className="flex-1 flex">
+              {ticks.map((tick) => (
+                <span key={tick} className="text-slate-400 text-[10px] text-center border-r border-slate-100 py-1" style={{ width: `${100 / ticks.length}%` }}>
+                  {tick}
+                </span>
+              ))}
             </div>
           </div>
           <div className="divide-y divide-slate-50">
@@ -492,8 +491,12 @@ function PersonnelGantt({ shipments, personnel, period, from, to }: { shipments:
         <div className="min-w-[700px] px-4 py-2">
           <div className="flex border-b border-slate-100 pb-2">
             <div className="w-36 flex-shrink-0" />
-            <div className="flex-1 flex flex-wrap gap-2">
-              {ticks.map((tick) => (<span key={tick} className="text-slate-400 text-xs whitespace-nowrap">{tick}</span>))}
+            <div className="flex-1 flex">
+              {ticks.map((tick) => (
+                <span key={tick} className="text-slate-400 text-[10px] text-center border-r border-slate-100 py-1" style={{ width: `${100 / ticks.length}%` }}>
+                  {tick}
+                </span>
+              ))}
             </div>
           </div>
           <div className="divide-y divide-slate-50">

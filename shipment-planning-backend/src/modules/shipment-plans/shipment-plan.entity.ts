@@ -143,6 +143,14 @@ export interface LoadingSequence {
   height_mm?: number;
 }
 
+export interface LoadingConfirmedItem {
+  id: string;
+  product_code: string;
+  block_id: string;
+  confirmed_at: string;
+  confirmed_by: string;
+}
+
 export interface PreparationCheck {
   stok_kodu: string;
   stok_adi: string;
@@ -151,6 +159,25 @@ export interface PreparationCheck {
   is_quality_approved: boolean;
   is_warehouse_suitable: boolean;
   notes: string;
+}
+
+export interface Irsaliye {
+  irsaliye_no: string;
+  sevkiyat_no: string;
+  tarih: string;
+  cari_ad: string;
+  cari_kod: string;
+  plaka: string;
+  sofor_adi: string;
+  urunler: {
+    stok_kodu: string;
+    stok_adi: string;
+    miktar: number;
+    birim: string;
+  }[];
+  toplam_koli: number;
+  toplam_palet: number;
+  toplam_agirlik_kg: number;
 }
 
 // ─── ENTITY ────────────────────────────────────────────────────────────────────
@@ -237,7 +264,13 @@ export class ShipmentPlan {
   loading_sequences: LoadingSequence[];
 
   @Column({ type: 'simple-json', nullable: true })
+  loading_confirmed_items: LoadingConfirmedItem[];
+
+  @Column({ type: 'simple-json', nullable: true })
   preparation_checks: PreparationCheck[];
+
+  @Column({ type: 'simple-json', nullable: true })
+  irsaliye: Irsaliye;
 
   // ─── ERP Hash (Değişiklik tespiti için) ──────────────────────────────────
   @Column({ type: 'nvarchar', length: 64, nullable: true })

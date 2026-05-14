@@ -16,10 +16,12 @@ import {
   OperationStatus,
   VehicleAssignment,
   LoadingSequence,
+  LoadingConfirmedItem,
   PreparationCheck,
   OrderProduct,
   ErpShipmentHeader,
   ErpShipmentDetail,
+  Irsaliye,
 } from './shipment-plan.entity';
 import { CreateShipmentPlanDto } from './dto/create-shipment-plan.dto';
 import { calculateVehiclePlacement, VehiclePlacementResult } from './vehicle-placement.util';
@@ -576,8 +578,41 @@ export class ShipmentPlansService {
       ShipmentStatus.LOADING,
     ];
 
-    const plans = await this.findAll(filters);
-    return plans.filter((plan) => activeStatuses.includes(plan.status));
+    const plans = await this.findAll();
+    const from = filters?.dateFrom ? new Date(filters.dateFrom) : null;
+    const to = filters?.dateTo ? new Date(filters.dateTo) : null;
+
+    const overlapsRange = (start: string, end: string) => {
+      if (!from || !to) return true;
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      return startDate <= to && endDate >= from;
+    };
+
+    return plans.filter((plan) => {
+      if (!activeStatuses.includes(plan.status)) {
+        return false;
+      }
+
+      if (!from || !to) {
+        return true;
+      }
+
+      const hasVisibleOperation = (plan.operations || []).some((op) =>
+        op.planned_start && op.planned_end && overlapsRange(op.planned_start, op.planned_end),
+      );
+
+      if (hasVisibleOperation) {
+        return true;
+      }
+
+      if (plan.termin_tarihi) {
+        const terminDate = new Date(plan.termin_tarihi);
+        return terminDate >= from && terminDate <= to;
+      }
+
+      return false;
+    });
   }
 
   async findOne(id: string): Promise<ShipmentPlan> {
@@ -655,5 +690,144 @@ export class ShipmentPlansService {
     }
     await this.repo.delete(id);
     return { message: 'Sevkiyat silindi.' };
+  }
+
+  // ─── 3D Yükleme Yönetimi ─────────────────────────────────────────────────
+
+  async start3DLoading(id: string): Promise<ShipmentPlan> {
+    const plan = await this.findOne(id);
+    if (plan.status !== ShipmentStatus.LOADING && plan.status !== ShipmentStatus.PACKING) {
+      throw new BadRequestException('3D yükleme için sevkiyat LOADING veya PACKING durumunda olmalıdır.');
+    }
+    plan.status = ShipmentStatus.LOADING;
+    plan.loading_confirmed_items = plan.loading_confirmed_items || [];
+    return this.repo.save(plan);
+  }
+
+  async confirm3DLoadingItem(
+    id: string,
+    product_code: string,
+    block_id: string,
+    confirmed_by: string,
+  ): Promise<ShipmentPlan> {
+    const plan = await this.findOne(id);
+    plan.loading_confirmed_items = plan.loading_confirmed_items || [];
+
+    const alreadyConfirmed = plan.loading_confirmed_items.find(
+      (item) => item.block_id === block_id,
+    );
+    if (alreadyConfirmed) {
+      throw new BadRequestException('Bu blok zaten yüklendi olarak işaretlenmiş.');
+    }
+
+    plan.loading_confirmed_items.push({
+      id: `LC-${Date.now()}`,
+      product_code,
+      block_id,
+      confirmed_at: new Date().toISOString(),
+      confirmed_by,
+    });
+
+    // Also increment scanned_quantity
+    const urun = plan.urun_listesi?.find((u) => u.stok_kodu === product_code);
+    if (urun) {
+      urun.scanned_quantity = (urun.scanned_quantity || 0) + 1;
+    }
+
+    return this.repo.save(plan);
+  }
+
+  async complete3DLoading(id: string): Promise<ShipmentPlan> {
+    const plan = await this.findOne(id);
+
+    // Get all unique product codes from loading sequences
+    const loadingProductCodes = new Set(
+      (plan.loading_sequences || []).map((ls) => ls.product_code),
+    );
+
+    // Check all products in loading sequences are confirmed
+    for (const productCode of loadingProductCodes) {
+      const confirmedCount = (plan.loading_confirmed_items || []).filter(
+        (item) => item.product_code === productCode,
+      ).length;
+      const expectedCount = (plan.loading_sequences || []).filter(
+        (ls) => ls.product_code === productCode,
+      ).reduce((sum, ls) => sum + (ls.box_count || 1), 0);
+
+      if (confirmedCount < expectedCount) {
+        throw new BadRequestException(
+          `${productCode} ürünü için tüm koliler yüklenmedi. Beklenen: ${expectedCount}, Yüklenen: ${confirmedCount}`,
+        );
+      }
+    }
+
+    plan.status = ShipmentStatus.PARTIAL_SHIPMENT;
+    plan.is_partial_shipment = true;
+    return this.repo.save(plan);
+  }
+
+  // ─── İrsaliye Oluşturma ───────────────────────────────────────────────────
+
+  async generateIrsaliye(id: string): Promise<ShipmentPlan> {
+    const plan = await this.findOne(id);
+
+    if (plan.status !== ShipmentStatus.SHIPPED && plan.status !== ShipmentStatus.PARTIAL_SHIPMENT) {
+      throw new BadRequestException('İrsaliye sadece SHIPPED veya PARTIAL_SHIPMENT durumunda oluşturulabilir.');
+    }
+
+    const vehicleAssignment = (plan.vehicle_assignments || [])[0];
+
+    const irsaliye: Irsaliye = {
+      irsaliye_no: `IRS-${plan.sevkiyat_no}-${Date.now()}`,
+      sevkiyat_no: plan.sevkiyat_no,
+      tarih: new Date().toISOString(),
+      cari_ad: plan.cari_ad,
+      cari_kod: plan.cari_kod,
+      plaka: vehicleAssignment?.plate || '',
+      sofor_adi: vehicleAssignment?.driver_name || '',
+      urunler: (plan.urun_listesi || []).map((u) => ({
+        stok_kodu: u.stok_kodu,
+        stok_adi: u.stok_adi,
+        miktar: u.scanned_quantity || u.miktar,
+        birim: u.palet_sayisi > 0 ? 'Palet' : 'Koli',
+      })),
+      toplam_koli: plan.toplam_koli,
+      toplam_palet: plan.toplam_palet,
+      toplam_agirlik_kg: plan.toplam_agirlik_kg,
+    };
+
+    plan.irsaliye = irsaliye;
+    plan.status = ShipmentStatus.SHIPPED;
+    plan.sevkiyat_tarihi = new Date();
+
+    return this.repo.save(plan);
+  }
+
+  // ─── Toplu Araç Atama (Planlama Sayfası için) ────────────────────────────
+
+  async assignShipmentToVehicle(
+    shipmentId: string,
+    vehicleId: string,
+    plate: string,
+    driverName: string,
+    loadPercentage: number,
+  ): Promise<ShipmentPlan> {
+    return this.assignVehicle(shipmentId, vehicleId, plate, driverName, loadPercentage);
+  }
+
+  async getActiveShipmentsForPlanning(): Promise<ShipmentPlan[]> {
+    return this.findAll({
+      status: ShipmentStatus.READY_FOR_PLANNING as any,
+    });
+  }
+
+  async getPlannedShipments(): Promise<ShipmentPlan[]> {
+    const plans = await this.repo.find({
+      where: {
+        status: In([ShipmentStatus.PLANNED, ShipmentStatus.PICKING, ShipmentStatus.PACKING, ShipmentStatus.LOADING]),
+      },
+      order: { termin_tarihi: 'ASC' },
+    });
+    return plans;
   }
 }

@@ -15,8 +15,9 @@ const navItems = [
   { path: '/preparation', label: 'Hazırlık Kontrolü', icon: ClipboardList },
   { path: '/planning', label: 'Operasyon Planlama', icon: CalendarDays },
   { path: '/vehicle-planning', label: 'Araç Planlama', icon: Truck },
-  { path: '/execution', label: 'Sevk Tamamlama', icon: Play },
+  { path: '/vehicle-list', label: 'Araç Listesi', icon: Truck },
   { path: '/loading-3d', label: '3D Yükleme', icon: Boxes },
+  { path: '/execution', label: 'Sevk Tamamlama', icon: Play },
   { path: '/reports', label: 'Raporlar', icon: BarChart3 },
 ];
 

@@ -118,7 +118,8 @@ export class UsersService {
       updateData.role = updateUserDto.role;
     }
 
-    if (updateUserDto.password) {
+    // Sadece boş olmayan şifreler güncelleyin
+    if (updateUserDto.password && updateUserDto.password.trim().length > 0) {
       updateData.password = await bcrypt.hash(updateUserDto.password, 12);
     }
 
